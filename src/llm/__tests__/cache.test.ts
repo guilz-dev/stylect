@@ -18,8 +18,10 @@ import {
   invalidateAllLlmCache,
   invalidateCompileCache,
   lintPath,
+  llmMetaPath,
   saveArticles,
   saveExtractions,
+  saveLlmMeta,
 } from '../cache.js'
 
 describe('resolveLlmStageNeeds', () => {
@@ -169,6 +171,27 @@ describe('needsCursorApiKey', () => {
     const needs = resolveLlmStageNeeds(config, slug, 0, 0)
     expect(needs).toEqual({ extract: false, compile: false, lint: true })
     expect(repoNeedsLlm(config, slug, 0, 0)).toBe(true)
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(true)
+  })
+
+  it('requires compile/lint when output language changes', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stylect-llm-lang-switch-'))
+    const slug = 'owner__repo'
+    const repoCacheDir = join(dir, slug)
+    ensureParentDir(extractionsPath(repoCacheDir))
+    writeFileSync(extractionsPath(repoCacheDir), '[]\n')
+    writeFileSync(articlesPath(repoCacheDir), '[]\n')
+    writeFileSync(lintPath(repoCacheDir), '{"issues":[],"passed":true}\n')
+    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: 'en' })
+
+    const config = defaultConfig({
+      cacheDir: dir,
+      repos: ['owner/repo'],
+      outputLanguage: 'ja',
+    })
+
+    const needs = resolveLlmStageNeeds(config, slug, 0, 0)
+    expect(needs).toEqual({ extract: false, compile: true, lint: true })
     expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(true)
   })
 

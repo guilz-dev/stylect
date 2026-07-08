@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import type { OutputLanguage } from '../config.js'
 import { ensureParentDir } from '../fetch/cache.js'
 import type { WikiArticle } from '../models/article.js'
 import type { ClusterExtraction } from '../models/extraction.js'
@@ -26,6 +27,14 @@ export function lintPath(cacheDir: string): string {
   return join(cacheDir, 'lint.json')
 }
 
+export function llmMetaPath(cacheDir: string): string {
+  return join(cacheDir, 'llm-meta.json')
+}
+
+export type LlmCacheMeta = {
+  output_language: OutputLanguage
+}
+
 export function shouldUseLlmCache(
   fresh: boolean,
   cacheExists: boolean,
@@ -45,6 +54,7 @@ export function invalidateAllLlmCache(repoCacheDir: string): void {
   removeIfExists(extractionsPath(repoCacheDir))
   removeIfExists(articlesPath(repoCacheDir))
   removeIfExists(lintPath(repoCacheDir))
+  removeIfExists(llmMetaPath(repoCacheDir))
 }
 
 /** Drop downstream caches when extractions are rewritten. */
@@ -89,6 +99,27 @@ export function loadLint(path: string): LintReport {
 export function saveLint(path: string, report: LintReport): void {
   ensureParentDir(path)
   writeFileSync(path, `${JSON.stringify(serializeLintReport(report), null, 2)}\n`, 'utf8')
+}
+
+export function loadLlmMeta(path: string): LlmCacheMeta | undefined {
+  if (!existsSync(path)) {
+    return undefined
+  }
+  return JSON.parse(readFileSync(path, 'utf8')) as LlmCacheMeta
+}
+
+export function saveLlmMeta(path: string, meta: LlmCacheMeta): void {
+  ensureParentDir(path)
+  writeFileSync(path, `${JSON.stringify(meta, null, 2)}\n`, 'utf8')
+}
+
+export function isOutputLanguageCacheCompatible(
+  meta: LlmCacheMeta | undefined,
+  outputLanguage: OutputLanguage,
+): boolean {
+  // Old caches (before llm-meta.json) are treated as English outputs.
+  const cached = meta?.output_language ?? 'en'
+  return cached === outputLanguage
 }
 
 export function cacheFileExists(path: string): boolean {

@@ -48,6 +48,7 @@ Options:
       --source <mode>       Fetch source: auto, local, or github (default: auto)
   -t, --token <token>       GitHub token (for languages API / GitHub fetch)
       --model <id>          LLM model for extract/compile/lint (default: composer-2.5)
+      --output-lang <lang>  Output language: en or ja (default: en)
       --cursor-api-key <k>  Cursor API key (or set CURSOR_API_KEY)
       --plan                Plan only; skip fetch and later stages
       --dry-run             Alias for --plan (deprecated)
