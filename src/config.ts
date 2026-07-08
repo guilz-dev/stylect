@@ -3,6 +3,8 @@ import { join } from 'node:path'
 
 export type FetchSource = 'auto' | 'local' | 'github'
 
+export const DEFAULT_LLM_MODEL = 'composer-2.5'
+
 export type StylectConfig = {
   author?: string
   repos: string[]
@@ -16,7 +18,10 @@ export type StylectConfig = {
   /** @deprecated Use `plan` instead */
   dryRun: boolean
   fresh: boolean
+  skipLlm: boolean
   githubToken?: string
+  cursorApiKey?: string
+  model: string
   repoPaths: string[]
   source: FetchSource
 }
@@ -35,6 +40,8 @@ export function defaultConfig(overrides: Partial<StylectConfig> = {}): StylectCo
     plan: false,
     dryRun: false,
     fresh: false,
+    skipLlm: false,
+    model: DEFAULT_LLM_MODEL,
     repoPaths: [],
     source: 'auto',
     ...overrides,

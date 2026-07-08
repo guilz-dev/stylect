@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`0.1.0`). Phase 1 is implemented: **fetch** (local git) and **sample** with cache. LLM stages are not wired yet.
+Early development (`0.1.0`). **fetch**, **sample**, and LLM stages (**extract**, **compile**, **lint**) are implemented. **write** (`.cursor/rules` / wiki output) is Phase 3.
 
 ## Install
 
@@ -36,17 +36,26 @@ stylect run \
   --since 2024-01-01 \
   --plan
 
-# Phase 1: fetch + sample (local git, no token required)
+# Phase 1: fetch + sample (local git, no LLM token required)
 stylect run \
   --author dev-user \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
   --since 2024-01-01 \
   -n 500 \
-  -s 10
+  -s 10 \
+  --skip-llm
+
+# Full pipeline through lint (requires CURSOR_API_KEY)
+export CURSOR_API_KEY=...
+stylect run \
+  --author dev-user \
+  --repo owner/repo \
+  --repo-path /path/to/local/clone \
+  -n 200 -s 5
 ```
 
-Cache is written to `~/.stylect/<owner__name>/` (`commits.jsonl`, `samples.json`, `meta.json`).
+Cache is written to `~/.stylect/<owner__name>/` (`commits.jsonl`, `samples.json`, `meta.json`, and after LLM stages: `extractions.json`, `articles.json`, `lint.json`).
 
 ## Pipeline
 
