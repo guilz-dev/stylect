@@ -22,7 +22,7 @@ export function resolveLlmStageNeeds(
   config: StylectConfig,
   slug: string,
   newCommitCount: number,
-  samplesRecalculated: boolean,
+  deltaClusterCount: number,
 ): LlmStageNeeds {
   if (config.skipLlm) {
     return { extract: false, compile: false, lint: false }
@@ -30,7 +30,19 @@ export function resolveLlmStageNeeds(
 
   const repoCacheDir = join(config.cacheDir, slug)
 
-  if (config.fresh || newCommitCount > 0 || samplesRecalculated) {
+  if (config.fresh) {
+    return { extract: true, compile: true, lint: true }
+  }
+
+  if (newCommitCount > 0 && deltaClusterCount === 0) {
+    return {
+      extract: !stageUsesLlmCache(config, extractionsPath(repoCacheDir), 0),
+      compile: !stageUsesLlmCache(config, articlesPath(repoCacheDir), 0),
+      lint: !stageUsesLlmCache(config, lintPath(repoCacheDir), 0),
+    }
+  }
+
+  if (newCommitCount > 0 && deltaClusterCount > 0) {
     return { extract: true, compile: true, lint: true }
   }
 
@@ -45,18 +57,18 @@ export function repoNeedsLlm(
   config: StylectConfig,
   slug: string,
   newCommitCount: number,
-  samplesRecalculated: boolean,
+  deltaClusterCount: number,
 ): boolean {
-  const needs = resolveLlmStageNeeds(config, slug, newCommitCount, samplesRecalculated)
+  const needs = resolveLlmStageNeeds(config, slug, newCommitCount, deltaClusterCount)
   return needs.extract || needs.compile || needs.lint
 }
 
 export function needsCursorApiKey(
   config: StylectConfig,
-  opts: { slug: string; newCommitCount: number; samplesRecalculated: boolean },
+  opts: { slug: string; newCommitCount: number; deltaClusterCount: number },
 ): boolean {
   if (config.plan || config.skipLlm) {
     return false
   }
-  return repoNeedsLlm(config, opts.slug, opts.newCommitCount, opts.samplesRecalculated)
+  return repoNeedsLlm(config, opts.slug, opts.newCommitCount, opts.deltaClusterCount)
 }

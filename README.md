@@ -10,9 +10,18 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`0.1.0`). **fetch**, **sample**, and LLM stages (**extract**, **compile**, **lint**) are implemented. **write** (`.cursor/rules` / wiki output) is Phase 3.
+Early development (`1.0.0`). Full pipeline through **write** is implemented, including incremental LLM (delta extract → evolve compile).
 
 ## Install
+
+### From npm (after release)
+
+```bash
+npm install -g @guilz-dev/stylect
+# or: pnpm add -g @guilz-dev/stylect
+```
+
+### From source
 
 ```bash
 pnpm install
@@ -46,12 +55,14 @@ stylect run \
   -s 10 \
   --skip-llm
 
-# Full pipeline through lint (requires CURSOR_API_KEY)
+# Full pipeline through write (requires CURSOR_API_KEY)
 export CURSOR_API_KEY=...
 stylect run \
   --author you \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
+  -o ./wiki \
+  --rules-dir ./.cursor/rules \
   -n 200 -s 5
 ```
 
@@ -70,7 +81,9 @@ fetch → sample → extract → compile → lint → write
 | extract | yes | Style observations per cluster (Phase 2)         |
 | compile | yes | Wiki articles / rules (Phase 2)                  |
 | lint    | yes | Quality check (Phase 2)                          |
-| write   | no  | `wiki/` and `.cursor/rules/` output (Phase 2)    |
+| write   | no  | `wiki/` and `.cursor/rules/` output (Phase 3)    |
+
+Re-runs with no new commits and existing output print `stylect: up to date` and skip LLM/write. Incremental runs only re-extract changed repo×language clusters and evolve affected articles.
 
 ## Auth
 

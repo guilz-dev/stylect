@@ -2,6 +2,7 @@
 
 **リポジトリ:** 本リポジトリのルート  
 **詳細設計（Phase 1 fetch/sample）:** [phase1.md](./phase1.md)  
+**詳細設計（Phase 3 write）:** [phase3.md](./phase3.md)  
 **参照 OSS:** [arlington-labs/gitstyle](https://github.com/arlington-labs/gitstyle)
 
 ---
@@ -10,54 +11,49 @@
 
 ```
 Phase 0  ████████░░  スキャフォールド（CLI 骨格・モデル・sample 大半）
-Phase 1  ████░░░░░░  fetch + sample 完走（MVP）
+Phase 1  ████████░░  fetch + sample 完走（MVP）✅
 Phase 1.1 ░░░░░░░░░░  サブコマンド・複数 author
-Phase 2  ░░░░░░░░░░  extract + compile + lint（Cursor SDK）
-Phase 3  ░░░░░░░░░░  write（.cursor/rules / wiki / Orbit）
-Phase 4  ░░░░░░░░░░  増分 LLM・npm 公開・polish
+Phase 2  ████████░░  extract + compile + lint ✅
+Phase 3  ████████░░  write（wiki + .cursor/rules）✅
+Phase 4  ████████░░  増分 LLM・up to date ✅ / npm 公開 ✅
 ```
 
 **パイプライン全体:**
 
 ```
 fetch → sample → extract → compile → lint → write
-  ↑       ↑        ↑ LLM      ↑ LLM    ↑ LLM
-Phase 1  Phase 1   Phase 2    Phase 2  Phase 2–3
+  ↑       ↑        ↑ LLM      ↑ LLM    ↑ LLM      ↑ I/O
+Phase 1  Phase 1   Phase 2    Phase 2  Phase 2    Phase 3
 ```
 
 ---
 
-## 現状（2026-07-09）
+## 現状（2026-07-09 更新）
 
 ### 完了済み
 
-| 領域 | ファイル | 状態 |
-|------|----------|------|
-| モデル | `src/models/commit.ts`, `cluster.ts`, `serialize.ts` | snake_case シリアライズ対応 |
-| sample | `src/sample/select.ts`, `index.ts` | gitstyle 移植済み |
-| キャッシュ | `src/fetch/cache.ts` | JSONL / samples / meta |
-| 言語推定 | `src/util/language.ts` | 拡張子マップ |
-| repo 解決 | `src/util/repo-path.ts` | slug / perRepoLimit / resolveRepoPath |
-| GitHub languages | `src/fetch/languages.ts` | REST（token 要） |
-| 設定型 | `src/config.ts` | `plan`, `repoPaths`, `source` 追加済み |
-| CLI 骨格 | `src/cli.ts`, `parse-args.ts` | 未接続・型エラーあり |
-| パイプライン | `src/pipeline/run.ts` | プラン表示のみ（スタブ） |
-| テスト | `src/parse-args.test.ts` | 3 件（要更新） |
+| Phase | 内容 | テスト |
+|-------|------|--------|
+| Phase 1 | fetch + sample + cache + CLI | ✅ |
+| Phase 1e | GitHub fetch（auto フォールバック） | ✅ |
+| Phase 2 | extract + compile + lint（`@cursor/sdk`） | ✅ |
+| 品質 | キャッシュ整合性、`--skip-llm`、増分 LLM、99+ テスト | ✅ |
 
-### 未実装・要修正
+### 未実装
 
-| 領域 | 不足 | ブロッカー |
-|------|------|-----------|
-| `parse-args.ts` | `defaultConfig()` 未使用、`--plan` / `--repo-path` / `--source` なし | typecheck 失敗 |
-| `cli.ts` | token 常時必須、help が旧 `--dry-run` | local-git MVP 不可 |
-| `fetch/local-git.ts` | なし | Phase 1 核心 |
-| `fetch/index.ts` | auto 戦略なし | pipeline 接続不可 |
-| `fetch/github.ts` | なし | クロスマシン用（後回し可） |
-| `pipeline/run.ts` | fetch/sample 未呼び出し | `run` が動かない |
-| テスト | sample / serialize / cache / local-git なし | CI カバレッジ不足 |
-| Phase 2+ | すべて | — |
+| Phase | 内容 |
+|-------|------|
+| Phase 3 | write（wiki + `.cursor/rules`）— [phase3.md](./phase3.md) | ✅ |
+| Phase 3-prep | パイプライン分割・`RepoLlmResult` 集約 | ✅ |
+| Phase 4 | 増分 LLM（evolve）、up to date 早期終了 | ✅ |
+| Phase 4 残 | npm 公開、GitHub Actions release | ✅ workflow 追加（`NPM_TOKEN` で GitHub Release から publish） |
+| Phase 1.1 | `stylect fetch` / `sample` サブコマンド |
 
-**現時点の typecheck:** `parse-args.ts` が `StylectConfig` の新フィールドを埋めていないため失敗。
+### 既知の残課題（意図的保留）
+
+- Phase 2/3/4 E2E 手動検証（`CURSOR_API_KEY` 要）— 手順は下記
+- Orbit 連携（PR-3c）
+- write-only モード（Phase 3.1）
 
 ---
 
@@ -307,66 +303,39 @@ src/
 
 **ゴール:** エージェントがそのまま読める成果物を出力。
 
+**詳細仕様:** [phase3.md](./phase3.md) を参照。ここでは **要点と PR 順**のみ記載。
+
+### レビュー反映の要点
+
+| 項目 | 方針 |
+|------|------|
+| パイプライン | ループ内で `RepoLlmResult[]` 集約 → **ループ外で write 1 回** |
+| 先行 PR | **PR-3-prep**（`run.ts` 分割、`RepoLlmResult`、README 修正） |
+| マージ | 同一 slug は後勝ち + `_meta/generation-log.md` に出典記録 |
+| write スキップ | `--plan` / `--skip-llm` / soft-stop / articles 0 件 |
+| lint 失敗 | write は続行、exit code 1 維持 |
+| CLI | `--rules-dir` を PR-3b と同時導入（`outputDir` 接続） |
+
 ### 出力先（優先順）
 
-| 優先 | 出力 | 用途 |
-|------|------|------|
-| 1 | `.cursor/rules/stylect-*.mdc` | Cursor エージェント |
-| 2 | `wiki/`（gitstyle 互換） | Obsidian / 汎用 Markdown |
-| 3 | Orbit persona / knowledge facet | Planetz 連携（将来） |
+| 優先 | 出力 | PR |
+|------|------|-----|
+| 1 | `wiki/`（gitstyle 互換） | PR-3b（先行） |
+| 2 | `.cursor/rules/stylect-*.mdc` | PR-3a |
+| 3 | Orbit persona / knowledge facet | PR-3c（保留） |
 
-### PR-3a: Cursor rules  writer
-
-```
-.cursor/rules/
-├── stylect-naming.mdc
-├── stylect-patterns.mdc
-├── stylect-testing.mdc
-└── ...
-```
-
-**frontmatter 例:**
-
-```yaml
----
-description: Naming conventions mined from git history (stylect)
-alwaysApply: false
-globs: "**/*.{rb,ts,tsx}"
----
-```
-
-| タスク | 内容 |
-|--------|------|
-| `WikiArticle` → `.mdc` 変換 | `writer/cursor-rules.ts` |
-| `--output` で rules ディレクトリ指定 | CLI |
-| 次元 → ファイル名マッピング | |
-| lint issues を footer に追記（任意） | |
-
-### PR-3b: wiki writer
-
-gitstyle `wiki_writer.py` 移植:
+### 推奨マージ順
 
 ```
-wiki/
-├── index.md
-├── naming-conventions.md
-├── patterns.md
-├── languages/
-│   └── ruby.md
-└── _meta/
-    ├── sources.json
-    ├── generation-config.json
-    └── generation-log.md
+PR-3-prep   パイプライン整理（必須・先行）
+PR-3b       wiki writer
+PR-3a       cursor rules writer
+PR-3-pipeline  merge + run 統合
+─── v1.0.0 ───
+PR-3c       Orbit（任意）
 ```
 
-### PR-3c: Orbit 連携（任意）
-
-| タスク | 内容 |
-|--------|------|
-| persona markdown 出力 | `~/.takt/personas/<author>.md` 等 |
-| Planetz knowledge facet JSON | Orbit スキーマ確定後 |
-
-### Phase 3 見積もり: ~400 LOC
+### Phase 3 見積もり: ~750 LOC（prep + writers + pipeline）
 
 ---
 
@@ -417,10 +386,13 @@ wiki/
 8. PR-2c  compile
 9. PR-2d  lint
    ─── v0.5.0 LLM パイプライン ───
-10. PR-3a cursor rules writer
+10. PR-3-prep パイプライン整理（必須・先行）
 11. PR-3b wiki writer
+12. PR-3a cursor rules writer
+13. PR-3-pipeline merge + run 統合
     ─── v1.0.0 製品利用可能 ───
-12. Phase 4 増分 + npm
+14. PR-3c Orbit（任意）
+15. Phase 4 増分 + npm
 ```
 
 ---
@@ -462,11 +434,49 @@ node dist/cli.js run \
   -n 200 -s 5
 ```
 
-### Phase 3
+### Phase 3–4（write + 増分 LLM）
 
 ```bash
-node dist/cli.js run ... -o .cursor/rules/generated
-ls .cursor/rules/generated/
+export CURSOR_API_KEY=...
+pnpm build
+
+# 初回フル実行
+node dist/cli.js run \
+  -r owner/repo \
+  -a you \
+  --repo-path /path/to/local/clone \
+  -o ./wiki \
+  --rules-dir ./.cursor/rules \
+  -n 200 -s 5
+
+# 再実行 → "stylect: up to date"（新コミットなし・成果物あり）
+node dist/cli.js run ...（同じ引数）
+
+# 新コミット追加後 → delta extract + evolve のみ（ログで確認）
+node dist/cli.js run ...（同じ引数）
+
+ls wiki/ .cursor/rules/stylect-*.mdc
+```
+
+**確認ポイント:**
+
+- [ ] `wiki/index.md` と dimension / language 記事が生成される
+- [ ] `.cursor/rules/stylect-*.mdc` が生成される
+- [ ] 2 回目で `stylect: up to date` と LLM スキップ
+- [ ] 新コミット後に extract/compile のみ再実行（全クラスタ再抽出ではない）
+- [ ] クラスタ削除時に古い言語記事・出力ファイルが残らない
+
+### npm 公開（メンテナ）
+
+1. リポジトリ Settings → Secrets → `NPM_TOKEN`（Automation token）
+2. GitHub で Release を作成（tag: `v1.0.0` 等）
+3. `release.yml` が `npm publish` を実行
+
+ローカル dry-run:
+
+```bash
+pnpm build
+npm pack --dry-run
 ```
 
 ---

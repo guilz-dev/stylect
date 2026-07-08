@@ -34,6 +34,7 @@ Options:
   -n, --max-commits <n>     Max commits to analyze (default: 2000)
   -s, --samples <n>         Samples per repo×language group (default: 20)
   -o, --output <dir>        Wiki output directory (default: ./wiki)
+      --rules-dir <dir>     Cursor rules output (default: ./.cursor/rules)
       --cache <dir>         Cache directory (default: ~/.stylect)
       --source <mode>       Fetch source: auto, local, or github (default: auto)
   -t, --token <token>       GitHub token (for languages API / GitHub fetch)
