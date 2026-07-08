@@ -1,7 +1,7 @@
 import { defaultConfig, type StylectConfig } from './config.js'
 
 export type ParsedCli = {
-  command: 'help' | 'run' | 'write' | 'version'
+  command: 'fetch' | 'help' | 'run' | 'sample' | 'write' | 'version'
   config: StylectConfig
 }
 
@@ -108,6 +108,20 @@ export function parseArgv(argv: string[]): ParsedCli {
       throw new Error('write requires at least one --repo owner/name')
     }
     return { command: 'write', config }
+  }
+
+  if (command === 'fetch') {
+    if (config.repos.length === 0) {
+      throw new Error('fetch requires at least one --repo owner/name')
+    }
+    return { command: 'fetch', config }
+  }
+
+  if (command === 'sample') {
+    if (config.repos.length === 0) {
+      throw new Error('sample requires at least one --repo owner/name')
+    }
+    return { command: 'sample', config }
   }
 
   if (command !== 'run') {

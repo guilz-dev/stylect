@@ -7,7 +7,9 @@ export type { FetchResult, SampledCluster } from './models/cluster.js'
 export type { CommitFile, RawCommit } from './models/commit.js'
 export type { LanguageSource } from './models/language-source.js'
 export { parseArgv } from './parse-args.js'
+export { runFetchPipeline } from './pipeline/fetch-stage.js'
 export { formatPlan, planPipeline, runPipeline } from './pipeline/run.js'
+export { runSamplePipeline } from './pipeline/sample-stage.js'
 export { runWritePipeline } from './pipeline/write.js'
 export {
   buildClusters,

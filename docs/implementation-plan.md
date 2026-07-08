@@ -167,7 +167,7 @@ clone が無い環境向け。MVP 後でも可。
 
 | 機能 | 内容 |
 |------|------|
-| `stylect fetch` / `stylect sample` | gitstyle の `fetch-cmd` / `sample-cmd` 相当。デバッグ用 |
+| `stylect fetch` / `stylect sample` | gitstyle の `fetch-cmd` / `sample-cmd` 相当。デバッグ用 ✅ |
 | 複数 `--author` | `git log` に複数回 or regex |
 | `stylect clean --cache` | repo キャッシュ削除 |
 | 並列 `git show` | コミット数が多い場合のオプション（`--parallel 4`） |

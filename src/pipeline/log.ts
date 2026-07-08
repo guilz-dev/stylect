@@ -4,6 +4,23 @@ import type { FetchResult, SampledCluster } from '../models/cluster.js'
 import type { LintReport } from '../models/lint-report.js'
 import type { WriteResult } from '../writer/types.js'
 
+export function logFetchSummary(repo: string, fetchResult: FetchResult, cacheDir: string): void {
+  const newLabel =
+    fetchResult.newCommits.length > 0
+      ? `${fetchResult.allCommits.length} commits (${fetchResult.newCommits.length} new)`
+      : `${fetchResult.allCommits.length} commits`
+
+  const lines = [
+    `repo: ${repo}`,
+    `source: ${fetchResult.source}${fetchResult.sourcePath ? ` (${fetchResult.sourcePath})` : ''}`,
+    `language_source: ${fetchResult.languageSource}`,
+    `fetched: ${newLabel}`,
+    `cache: ${join(cacheDir, 'commits.jsonl')}`,
+    '',
+  ]
+  process.stdout.write(lines.join('\n'))
+}
+
 export function logSampleSummary(
   repo: string,
   fetchResult: FetchResult,
