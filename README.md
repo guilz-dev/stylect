@@ -14,7 +14,7 @@ Early development (`1.0.0`). Full pipeline through **write** is implemented, inc
 
 ## Install
 
-### From npm (after release)
+### From npm
 
 ```bash
 npm install -g @guilz-dev/stylect
@@ -84,6 +84,12 @@ fetch → sample → extract → compile → lint → write
 | write   | no  | `wiki/` and `.cursor/rules/` output (Phase 3)    |
 
 Re-runs with no new commits and existing output print `stylect: up to date` and skip LLM/write. Incremental runs only re-extract changed repo×language clusters and evolve affected articles.
+
+Re-write wiki/rules from cache without LLM:
+
+```bash
+stylect write -r owner/repo -o ./wiki --rules-dir ./.cursor/rules
+```
 
 ## Auth
 

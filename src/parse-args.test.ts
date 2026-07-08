@@ -64,6 +64,29 @@ describe('parseArgv', () => {
   it('requires --repo for run', () => {
     expect(() => parseArgv(['run', '--plan'])).toThrow(/requires at least one --repo/)
   })
+
+  it('parses write with repo and output paths', () => {
+    const parsed = parseArgv([
+      'write',
+      '--repo',
+      'owner/repo',
+      '--output',
+      '/tmp/wiki',
+      '--rules-dir',
+      '/tmp/rules',
+      '--cache',
+      '/tmp/cache',
+    ])
+    expect(parsed.command).toBe('write')
+    expect(parsed.config.repos).toEqual(['owner/repo'])
+    expect(parsed.config.outputDir).toBe('/tmp/wiki')
+    expect(parsed.config.rulesDir).toBe('/tmp/rules')
+    expect(parsed.config.cacheDir).toBe('/tmp/cache')
+  })
+
+  it('requires --repo for write', () => {
+    expect(() => parseArgv(['write'])).toThrow(/requires at least one --repo/)
+  })
 })
 
 describe('planPipeline', () => {
