@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url'
 import { resolveGitHubToken } from './github/token.js'
 import { parseArgv } from './parse-args.js'
 import { runPipeline } from './pipeline/run.js'
+import { runWritePipeline } from './pipeline/write.js'
 import { needsGitHubToken, validateRunConfig } from './util/validate-config.js'
+import { validateWriteConfig } from './util/validate-write-config.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -23,6 +25,7 @@ function printHelp() {
 
 Usage:
   stylect run [options]
+  stylect write [options]
   stylect --version
 
 Options:
@@ -46,9 +49,14 @@ Options:
       --skip-llm            Stop after sample (Phase 1; no LLM stages)
   -h, --help                Show this help
 
+Commands:
+  run                       Full pipeline: fetch → sample → LLM → write
+  write                     Write wiki/rules from cached articles.json (no LLM)
+
 Examples:
   stylect run -r owner/repo -a you --repo-path /path/to/clone
   stylect run -r owner/repo -a you --plan
+  stylect write -r owner/repo -o ./wiki --rules-dir ./.cursor/rules
 `)
 }
 
@@ -63,6 +71,15 @@ async function main() {
 
     if (parsed.command === 'version') {
       process.stdout.write(`stylect ${packageVersion()}\n`)
+      return
+    }
+
+    if (parsed.command === 'write') {
+      validateWriteConfig(parsed.config)
+      const result = await runWritePipeline(parsed.config)
+      if (result.lintFailed || result.llmPartialFailure) {
+        process.exitCode = 1
+      }
       return
     }
 

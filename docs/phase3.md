@@ -320,10 +320,11 @@ ls .cursor/rules/stylect-*.mdc
 cat wiki/_meta/generation-log.md
 ```
 
-**キャッシュのみ再 write（Phase 3.1 予定）:**
+**キャッシュのみ再 write（Phase 3.1）:**
 
 ```bash
-# 将来: stylect write --cache ~/.stylect -o ./wiki
+stylect write -r owner/repo -o ./wiki --rules-dir ./.cursor/rules
+# カスタムキャッシュ: --cache ~/.stylect
 ```
 
 ---

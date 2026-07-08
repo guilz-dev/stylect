@@ -53,7 +53,7 @@ Phase 1  Phase 1   Phase 2    Phase 2  Phase 2    Phase 3
 
 - Phase 2/3/4 E2E 手動検証（`CURSOR_API_KEY` 要）— 手順は下記
 - Orbit 連携（PR-3c）
-- write-only モード（Phase 3.1）
+- write-only モード（Phase 3.1）✅
 
 ---
 
@@ -456,6 +456,15 @@ node dist/cli.js run ...（同じ引数）
 node dist/cli.js run ...（同じ引数）
 
 ls wiki/ .cursor/rules/stylect-*.mdc
+```
+
+**write-only（キャッシュから再出力）:**
+
+```bash
+node dist/cli.js write \
+  -r owner/repo \
+  -o ./wiki \
+  --rules-dir ./.cursor/rules
 ```
 
 **確認ポイント:**

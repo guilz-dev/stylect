@@ -8,6 +8,7 @@ export type { CommitFile, RawCommit } from './models/commit.js'
 export type { LanguageSource } from './models/language-source.js'
 export { parseArgv } from './parse-args.js'
 export { formatPlan, planPipeline, runPipeline } from './pipeline/run.js'
+export { runWritePipeline } from './pipeline/write.js'
 export {
   buildClusters,
   type SampleResult,
