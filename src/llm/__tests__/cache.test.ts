@@ -141,6 +141,23 @@ describe('needsCursorApiKey', () => {
     expect(repoNeedsLlm(config, slug, 0, false)).toBe(false)
   })
 
+  it('requires only missing stages when caches are partially present', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stylect-llm-partial-needs-'))
+    const slug = 'owner__repo'
+    const repoCacheDir = join(dir, slug)
+    ensureParentDir(extractionsPath(repoCacheDir))
+    writeFileSync(extractionsPath(repoCacheDir), '[]\n')
+    writeFileSync(articlesPath(repoCacheDir), '[]\n')
+
+    const config = defaultConfig({ cacheDir: dir, repos: ['owner/repo'] })
+    const needs = resolveLlmStageNeeds(config, slug, 0, false)
+    expect(needs).toEqual({ extract: false, compile: false, lint: true })
+    expect(repoNeedsLlm(config, slug, 0, false)).toBe(true)
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, samplesRecalculated: false })).toBe(
+      true,
+    )
+  })
+
   it('returns true when samples were recalculated', () => {
     const config = defaultConfig({ repos: ['owner/repo'] })
     expect(
