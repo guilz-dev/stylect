@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`1.2.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, and debug `stylect fetch` / `sample` subcommands.
+Early development (`1.3.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, and output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`).
 
 ## Install
 
@@ -61,6 +61,7 @@ stylect run \
   --author you \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
+  --output-lang en \
   -o ./wiki \
   --rules-dir ./.cursor/rules \
   -n 200 -s 5
@@ -98,12 +99,21 @@ stylect fetch -r owner/repo -a you --repo-path /path/to/local/clone
 stylect sample -r owner/repo
 ```
 
+Control wiki/rules language (default: English):
+
+```bash
+stylect run ... --output-lang ja
+# or:
+export STYLECT_OUTPUT_LANG=ja
+```
+
 ## Auth
 
 | Variable         | Purpose                                              |
 |------------------|------------------------------------------------------|
 | `GITHUB_TOKEN`   | GitHub fetch fallback + repo languages API           |
 | `CURSOR_API_KEY` | Cursor SDK for extract/compile/lint (Phase 2)      |
+| `STYLECT_OUTPUT_LANG` | Output language (`en` or `ja`, default: `en`) |
 
 `--author` is required for fetch runs. GitHub token is required for `--source github`, or for `--source auto` when no local clone is found (optional otherwise for languages API).
 

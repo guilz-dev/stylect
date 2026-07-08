@@ -1,7 +1,15 @@
 import { join } from 'node:path'
 
 import type { StylectConfig } from '../config.js'
-import { articlesPath, cacheFileExists, extractionsPath, lintPath } from '../llm/cache.js'
+import {
+  articlesPath,
+  cacheFileExists,
+  extractionsPath,
+  isOutputLanguageCacheCompatible,
+  lintPath,
+  llmMetaPath,
+  loadLlmMeta,
+} from '../llm/cache.js'
 import { shouldUseCache } from './cache-policy.js'
 
 export type LlmStageNeeds = {
@@ -29,6 +37,10 @@ export function resolveLlmStageNeeds(
   }
 
   const repoCacheDir = join(config.cacheDir, slug)
+  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
+    loadLlmMeta(llmMetaPath(repoCacheDir)),
+    config.outputLanguage,
+  )
 
   if (config.fresh) {
     return { extract: true, compile: true, lint: true }
@@ -37,8 +49,9 @@ export function resolveLlmStageNeeds(
   if (newCommitCount > 0 && deltaClusterCount === 0) {
     return {
       extract: !stageUsesLlmCache(config, extractionsPath(repoCacheDir), 0),
-      compile: !stageUsesLlmCache(config, articlesPath(repoCacheDir), 0),
-      lint: !stageUsesLlmCache(config, lintPath(repoCacheDir), 0),
+      compile:
+        !stageUsesLlmCache(config, articlesPath(repoCacheDir), 0) || !outputLanguageCompatible,
+      lint: !stageUsesLlmCache(config, lintPath(repoCacheDir), 0) || !outputLanguageCompatible,
     }
   }
 
@@ -47,8 +60,11 @@ export function resolveLlmStageNeeds(
   }
 
   const extract = !stageUsesLlmCache(config, extractionsPath(repoCacheDir), newCommitCount)
-  const compile = !stageUsesLlmCache(config, articlesPath(repoCacheDir), newCommitCount)
-  const lint = !stageUsesLlmCache(config, lintPath(repoCacheDir), newCommitCount)
+  const compile =
+    !stageUsesLlmCache(config, articlesPath(repoCacheDir), newCommitCount) ||
+    !outputLanguageCompatible
+  const lint =
+    !stageUsesLlmCache(config, lintPath(repoCacheDir), newCommitCount) || !outputLanguageCompatible
 
   return { extract, compile, lint }
 }

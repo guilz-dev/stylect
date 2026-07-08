@@ -4,15 +4,21 @@ import type { StylectConfig } from '../config.js'
 import {
   articlesPath,
   cacheFileExists,
+  isOutputLanguageCacheCompatible,
   lintPath,
+  llmMetaPath,
   loadLint,
+  loadLlmMeta,
   saveLint,
+  saveLlmMeta,
   shouldUseLlmCache,
 } from '../llm/cache.js'
 import { completeJson, type LlmConfig } from '../llm/cursor.js'
+import { withOutputLanguage } from '../llm/output-language.js'
 import type { WikiArticle } from '../models/article.js'
 import type { LintIssue, LintReport, LintSeverity } from '../models/lint-report.js'
 import { LINT_SYSTEM } from './prompt.js'
+import { collectStaticLintIssues } from './static.js'
 
 export type LintResult = {
   report: LintReport
@@ -71,8 +77,13 @@ export async function lintWiki(
   const repoCacheDir = join(config.cacheDir, opts.slug)
   const cachePath = lintPath(repoCacheDir)
   const articlesCachePath = articlesPath(repoCacheDir)
+  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
+    loadLlmMeta(llmMetaPath(repoCacheDir)),
+    config.outputLanguage,
+  )
 
   if (
+    outputLanguageCompatible &&
     shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount) &&
     cacheFileExists(articlesCachePath)
   ) {
@@ -83,11 +94,23 @@ export async function lintWiki(
     return { report: { issues: [], passed: true }, fromCache: false }
   }
 
+  const staticIssues = collectStaticLintIssues(articles, config.outputLanguage)
+
   try {
-    const data = await completeJson(opts.llm, LINT_SYSTEM, buildLintPrompt(articles))
+    const data = await completeJson(
+      opts.llm,
+      withOutputLanguage(LINT_SYSTEM, config.outputLanguage),
+      buildLintPrompt(articles),
+    )
     const report = parseLintReport(data)
-    saveLint(cachePath, report)
-    return { report, fromCache: false }
+    const issues = [...staticIssues, ...report.issues]
+    const merged: LintReport = {
+      issues,
+      passed: report.passed && staticIssues.length === 0,
+    }
+    saveLint(cachePath, merged)
+    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
+    return { report: merged, fromCache: false }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const report: LintReport = {
@@ -101,6 +124,7 @@ export async function lintWiki(
       passed: false,
     }
     saveLint(cachePath, report)
+    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
     return { report, fromCache: false }
   }
 }

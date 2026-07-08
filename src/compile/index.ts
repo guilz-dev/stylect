@@ -5,11 +5,16 @@ import {
   articlesPath,
   cacheFileExists,
   extractionsPath,
+  isOutputLanguageCacheCompatible,
+  llmMetaPath,
   loadArticles,
+  loadLlmMeta,
   saveArticles,
+  saveLlmMeta,
   shouldUseLlmCache,
 } from '../llm/cache.js'
 import { completeJson, type LlmConfig } from '../llm/cursor.js'
+import { withOutputLanguage } from '../llm/output-language.js'
 import type { WikiArticle } from '../models/article.js'
 import type { ClusterExtraction } from '../models/extraction.js'
 import { STYLE_DIMENSIONS } from '../models/style-dimension.js'
@@ -32,6 +37,9 @@ import {
   EVOLVE_LANGUAGE_SYSTEM,
   LANGUAGE_COMPILE_SYSTEM,
 } from './prompt.js'
+import { looksTruncatedArticleContent } from './validate-article.js'
+
+const COMPILE_TRUNCATION_RETRIES = 2
 
 export type CompileResult = {
   articles: WikiArticle[]
@@ -60,6 +68,35 @@ function parseArticleData(
   return { slug, title, category, confidence, sourceRepos, content, wikilinks }
 }
 
+async function compileArticleJson(
+  llm: LlmConfig,
+  system: string,
+  prompt: string,
+  slug: string,
+): Promise<unknown> {
+  let currentPrompt = prompt
+  let lastError: Error | undefined
+
+  for (let attempt = 0; attempt <= COMPILE_TRUNCATION_RETRIES; attempt += 1) {
+    const data = await completeJson(llm, system, currentPrompt)
+    const record = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
+    const content = typeof record.content === 'string' ? record.content : ''
+
+    if (!looksTruncatedArticleContent(content)) {
+      return data
+    }
+
+    lastError = new Error(`compiled article "${slug}" looks truncated`)
+    if (attempt >= COMPILE_TRUNCATION_RETRIES) {
+      break
+    }
+
+    currentPrompt = `${prompt}\n\nIMPORTANT: Your previous response was cut off mid-sentence. Return the FULL article with complete final sentences and sections.`
+  }
+
+  throw lastError ?? new Error(`compiled article "${slug}" looks truncated`)
+}
+
 function preserveUncompiledArticles(
   articles: WikiArticle[],
   existingArticles: WikiArticle[],
@@ -86,8 +123,13 @@ export async function compileWiki(
   const repoCacheDir = join(config.cacheDir, opts.slug)
   const cachePath = articlesPath(repoCacheDir)
   const extractionsCachePath = extractionsPath(repoCacheDir)
+  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
+    loadLlmMeta(llmMetaPath(repoCacheDir)),
+    config.outputLanguage,
+  )
 
   if (
+    outputLanguageCompatible &&
     shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount) &&
     cacheFileExists(extractionsCachePath)
   ) {
@@ -97,7 +139,11 @@ export async function compileWiki(
   const existingArticles =
     cacheFileExists(cachePath) && opts.newCommitCount > 0 ? loadArticles(cachePath) : []
   const deltaExtractions = opts.deltaExtractions ?? []
-  const incremental = !config.fresh && opts.newCommitCount > 0 && existingArticles.length > 0
+  const incremental =
+    !config.fresh &&
+    opts.newCommitCount > 0 &&
+    existingArticles.length > 0 &&
+    outputLanguageCompatible
   const { byDimension, byLanguage, repos } = groupObservations(extractions)
   const validSlugs = validCompileSlugs(byDimension, byLanguage)
   const affectedSlugs = incremental ? affectedCompileSlugs(deltaExtractions) : undefined
@@ -139,11 +185,14 @@ export async function compileWiki(
         : observations
 
     try {
-      const system = existing ? EVOLVE_DIMENSION_SYSTEM : COMPILE_SYSTEM
+      const system = withOutputLanguage(
+        existing ? EVOLVE_DIMENSION_SYSTEM : COMPILE_SYSTEM,
+        config.outputLanguage,
+      )
       const prompt = existing
         ? buildEvolveDimensionPrompt(dimension, existing, evolveObservations, validSlugs)
         : buildDimensionPrompt(dimension, observations, validSlugs)
-      const data = await completeJson(opts.llm, system, prompt)
+      const data = await compileArticleJson(opts.llm, system, prompt, dimension)
       articles.push(
         parseArticleData(
           data,
@@ -184,11 +233,14 @@ export async function compileWiki(
         : observations
 
     try {
-      const system = existing ? EVOLVE_LANGUAGE_SYSTEM : LANGUAGE_COMPILE_SYSTEM
+      const system = withOutputLanguage(
+        existing ? EVOLVE_LANGUAGE_SYSTEM : LANGUAGE_COMPILE_SYSTEM,
+        config.outputLanguage,
+      )
       const prompt = existing
         ? buildEvolveLanguagePrompt(language, existing, evolveObservations, validSlugs)
         : buildLanguagePrompt(language, observations, validSlugs)
-      const data = await completeJson(opts.llm, system, prompt)
+      const data = await compileArticleJson(opts.llm, system, prompt, slug)
       articles.push(parseArticleData(data, slug, 'language', reposList, `${language} Style`))
     } catch (error) {
       failedSlugs.push(slug)
@@ -205,6 +257,7 @@ export async function compileWiki(
   if (combined.length > 0) {
     const fixed = fixWikilinks(combined)
     saveArticles(cachePath, fixed)
+    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
     return { articles: fixed, fromCache: false, failedSlugs }
   }
 

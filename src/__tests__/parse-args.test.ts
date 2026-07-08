@@ -3,9 +3,9 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { defaultConfig } from './config.js'
-import { parseArgv } from './parse-args.js'
-import { formatPlan, planPipeline } from './pipeline/run.js'
+import { defaultConfig } from '../config.js'
+import { parseArgv } from '../parse-args.js'
+import { formatPlan, planPipeline } from '../pipeline/run.js'
 
 describe('parseArgv', () => {
   it('parses run with repo and author', () => {
@@ -40,6 +40,61 @@ describe('parseArgv', () => {
   it('parses --model', () => {
     const parsed = parseArgv(['run', '--repo', 'owner/repo', '--model', 'composer-2.5'])
     expect(parsed.config.model).toBe('composer-2.5')
+  })
+
+  it('parses --output-lang', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--output-lang', 'ja'])
+    expect(parsed.config.outputLanguage).toBe('ja')
+  })
+
+  it('uses STYLECT_OUTPUT_LANG when flag is absent', () => {
+    const previous = process.env.STYLECT_OUTPUT_LANG
+    process.env.STYLECT_OUTPUT_LANG = 'ja'
+    try {
+      const parsed = parseArgv(['run', '--repo', 'owner/repo'])
+      expect(parsed.config.outputLanguage).toBe('ja')
+    } finally {
+      if (previous === undefined) {
+        delete process.env.STYLECT_OUTPUT_LANG
+      } else {
+        process.env.STYLECT_OUTPUT_LANG = previous
+      }
+    }
+  })
+
+  it('rejects invalid --output-lang values', () => {
+    expect(() => parseArgv(['run', '--repo', 'owner/repo', '--output-lang', 'fr'])).toThrow(
+      /expected en or ja/,
+    )
+  })
+
+  it('rejects invalid STYLECT_OUTPUT_LANG values', () => {
+    const previous = process.env.STYLECT_OUTPUT_LANG
+    process.env.STYLECT_OUTPUT_LANG = 'fr'
+    try {
+      expect(() => parseArgv(['run', '--repo', 'owner/repo'])).toThrow(/expected en or ja/)
+    } finally {
+      if (previous === undefined) {
+        delete process.env.STYLECT_OUTPUT_LANG
+      } else {
+        process.env.STYLECT_OUTPUT_LANG = previous
+      }
+    }
+  })
+
+  it('allows help/version even when STYLECT_OUTPUT_LANG is invalid', () => {
+    const previous = process.env.STYLECT_OUTPUT_LANG
+    process.env.STYLECT_OUTPUT_LANG = 'fr'
+    try {
+      expect(parseArgv(['--version']).command).toBe('version')
+      expect(parseArgv(['run', '--help']).command).toBe('help')
+    } finally {
+      if (previous === undefined) {
+        delete process.env.STYLECT_OUTPUT_LANG
+      } else {
+        process.env.STYLECT_OUTPUT_LANG = previous
+      }
+    }
   })
 
   it('parses --repo-path and --source', () => {

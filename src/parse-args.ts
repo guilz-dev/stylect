@@ -1,4 +1,4 @@
-import { defaultConfig, type StylectConfig } from './config.js'
+import { defaultConfig, parseOutputLanguage, type StylectConfig } from './config.js'
 
 export type ParsedCli = {
   command: 'fetch' | 'help' | 'run' | 'sample' | 'write' | 'version'
@@ -7,7 +7,15 @@ export type ParsedCli = {
 
 export function parseArgv(argv: string[]): ParsedCli {
   const [command, ...rest] = argv
-  const config = defaultConfig()
+  const lenientEnv =
+    command === 'version' ||
+    command === '-v' ||
+    command === '--version' ||
+    !command ||
+    command === 'help' ||
+    rest.includes('--help') ||
+    rest.includes('-h')
+  const config = defaultConfig({}, { strictEnv: !lenientEnv })
 
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i]
@@ -64,6 +72,10 @@ export function parseArgv(argv: string[]): ParsedCli {
         break
       case '--model':
         config.model = requireValue(rest, i, token)
+        i += 1
+        break
+      case '--output-lang':
+        config.outputLanguage = parseOutputLanguage(requireValue(rest, i, token), '--output-lang')
         i += 1
         break
       case '--cursor-api-key':

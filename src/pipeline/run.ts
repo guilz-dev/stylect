@@ -38,6 +38,7 @@ export function formatPlan(plan: PipelinePlan): string {
     `max commits: ${plan.config.maxCommits}`,
     `samples per group: ${plan.config.samplesPerGroup}`,
     `model: ${plan.config.model}`,
+    `output language: ${plan.config.outputLanguage}`,
     `skip LLM: ${plan.config.skipLlm}`,
     `output: ${plan.config.outputDir}`,
     `rules: ${plan.config.rulesDir}`,

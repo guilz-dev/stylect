@@ -12,6 +12,7 @@ Requirements:
 - Be specific and concrete — avoid vague generalities
 - If observations conflict, note the contradiction and which has stronger evidence
 - Do NOT link an article to itself (no self-referential wikilinks)
+- This repository is a single TypeScript codebase; language clusters (e.g. JavaScript vs TypeScript files in history) are not separate codebases
 - Complete all sentences fully — never end an article mid-sentence
 
 Return valid JSON:
@@ -33,6 +34,7 @@ Requirements:
 - Update confidence if warranted
 - If observations conflict with the existing article, note the contradiction and which has stronger evidence
 - Do NOT link an article to itself (no self-referential wikilinks)
+- This repository is a single TypeScript codebase; language clusters (e.g. JavaScript vs TypeScript files in history) are not separate codebases
 - Complete all sentences fully — never end an article mid-sentence
 
 Return valid JSON:
