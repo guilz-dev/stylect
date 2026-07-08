@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`1.0.0`). Full pipeline through **write** is implemented, including incremental LLM (delta extract → evolve compile).
+Early development (`1.1.0`). Full pipeline through **write** is implemented, including incremental LLM (delta extract → evolve compile) and cache-only `stylect write`.
 
 ## Install
 
