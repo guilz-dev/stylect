@@ -1,0 +1,57 @@
+{
+  "name": "@guilz-dev/stylect",
+  "version": "0.1.0",
+  "description": "Extract your coding dialect from git history and teach it to coding agents.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guilz-dev/stylect.git"
+  },
+  "homepage": "https://github.com/guilz-dev/stylect#readme",
+  "bugs": {
+    "url": "https://github.com/guilz-dev/stylect/issues"
+  },
+  "keywords": [
+    "agent",
+    "cursor",
+    "git",
+    "style",
+    "persona",
+    "orbit",
+    "planetz"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.29.3",
+  "bin": {
+    "stylect": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "biome check src package.json README.md tsconfig.json tsconfig.build.json vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15",
+    "@types/node": "22.15.29",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
