@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`1.1.0`). Full pipeline through **write** is implemented, including incremental LLM (delta extract → evolve compile) and cache-only `stylect write`.
+Early development (`1.2.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, and debug `stylect fetch` / `sample` subcommands.
 
 ## Install
 
@@ -89,6 +89,13 @@ Re-write wiki/rules from cache without LLM:
 
 ```bash
 stylect write -r owner/repo -o ./wiki --rules-dir ./.cursor/rules
+```
+
+Debug individual pipeline stages:
+
+```bash
+stylect fetch -r owner/repo -a you --repo-path /path/to/local/clone
+stylect sample -r owner/repo
 ```
 
 ## Auth

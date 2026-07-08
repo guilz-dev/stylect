@@ -87,6 +87,30 @@ describe('parseArgv', () => {
   it('requires --repo for write', () => {
     expect(() => parseArgv(['write'])).toThrow(/requires at least one --repo/)
   })
+
+  it('parses fetch with repo and author', () => {
+    const parsed = parseArgv(['fetch', '--repo', 'owner/repo', '--author', 'dev-user'])
+    expect(parsed.command).toBe('fetch')
+    expect(parsed.config.repos).toEqual(['owner/repo'])
+    expect(parsed.config.author).toBe('dev-user')
+  })
+
+  it('parses sample with repo', () => {
+    const parsed = parseArgv(['sample', '--repo', 'owner/repo', '--fresh'])
+    expect(parsed.command).toBe('sample')
+    expect(parsed.config.repos).toEqual(['owner/repo'])
+    expect(parsed.config.fresh).toBe(true)
+  })
+
+  it('requires --repo for fetch', () => {
+    expect(() => parseArgv(['fetch', '--author', 'dev-user'])).toThrow(
+      /requires at least one --repo/,
+    )
+  })
+
+  it('requires --repo for sample', () => {
+    expect(() => parseArgv(['sample'])).toThrow(/requires at least one --repo/)
+  })
 })
 
 describe('planPipeline', () => {

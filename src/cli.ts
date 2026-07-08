@@ -7,9 +7,13 @@ import { fileURLToPath } from 'node:url'
 
 import { resolveGitHubToken } from './github/token.js'
 import { parseArgv } from './parse-args.js'
+import { runFetchPipeline } from './pipeline/fetch-stage.js'
 import { runPipeline } from './pipeline/run.js'
+import { runSamplePipeline } from './pipeline/sample-stage.js'
 import { runWritePipeline } from './pipeline/write.js'
 import { needsGitHubToken, validateRunConfig } from './util/validate-config.js'
+import { validateFetchConfig } from './util/validate-fetch-config.js'
+import { validateSampleConfig } from './util/validate-sample-config.js'
 import { validateWriteConfig } from './util/validate-write-config.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -25,6 +29,8 @@ function printHelp() {
 
 Usage:
   stylect run [options]
+  stylect fetch [options]
+  stylect sample [options]
   stylect write [options]
   stylect --version
 
@@ -51,11 +57,14 @@ Options:
 
 Commands:
   run                       Full pipeline: fetch → sample → LLM → write
+  fetch                     Fetch commits to cache (no sampling)
+  sample                    Sample clusters from cached commits.jsonl
   write                     Write wiki/rules from cached articles.json (no LLM)
 
 Examples:
   stylect run -r owner/repo -a you --repo-path /path/to/clone
-  stylect run -r owner/repo -a you --plan
+  stylect fetch -r owner/repo -a you --repo-path /path/to/clone
+  stylect sample -r owner/repo
   stylect write -r owner/repo -o ./wiki --rules-dir ./.cursor/rules
 `)
 }
@@ -80,6 +89,37 @@ async function main() {
       if (result.lintFailed || result.llmPartialFailure) {
         process.exitCode = 1
       }
+      return
+    }
+
+    if (parsed.command === 'fetch' || parsed.command === 'sample') {
+      const needsGitHub = needsGitHubToken(parsed.config)
+      if (needsGitHub) {
+        const token = await resolveGitHubToken(parsed.config.githubToken)
+        if (!token) {
+          throw new Error(
+            'GitHub token required when using --source github or when no local clone is found. Set GITHUB_TOKEN, pass --token, or run `gh auth login`.',
+          )
+        }
+        parsed.config.githubToken = token
+      } else if (parsed.config.githubToken) {
+        parsed.config.githubToken = await resolveGitHubToken(parsed.config.githubToken)
+      } else {
+        const token = await resolveGitHubToken()
+        if (token) {
+          parsed.config.githubToken = token
+        }
+      }
+
+      if (parsed.command === 'fetch') {
+        validateFetchConfig(parsed.config)
+        validateRunConfig(parsed.config)
+        await runFetchPipeline(parsed.config)
+        return
+      }
+
+      validateSampleConfig(parsed.config)
+      await runSamplePipeline(parsed.config)
       return
     }
 

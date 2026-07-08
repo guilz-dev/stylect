@@ -1,6 +1,6 @@
 {
   "name": "@guilz-dev/stylect",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Extract your coding dialect from git history and teach it to coding agents.",
   "type": "module",
   "license": "MIT",
