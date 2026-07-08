@@ -1,3 +1,4 @@
+import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import type { StylectConfig } from '../config.js'
@@ -14,13 +15,21 @@ import type { SampledCluster } from '../models/cluster.js'
 import type { ClusterExtraction } from '../models/extraction.js'
 import type { Observation } from '../models/observation.js'
 import { parseStyleDimension } from '../models/style-dimension.js'
+import { clusterKey, findDeltaClusters } from '../sample/delta.js'
 import { buildExtractPrompt } from './build-prompt.js'
+import {
+  alignExtractionsToClusters,
+  extractionKey,
+  extractionsDiffer,
+  mergeExtractions,
+} from './merge.js'
 import { EXTRACT_SYSTEM } from './prompt.js'
 
 export type ExtractResult = {
   extractions: ClusterExtraction[]
   fromCache: boolean
   skippedClusters: number
+  deltaClusterCount: number
 }
 
 function parseObservations(data: unknown): Observation[] {
@@ -57,26 +66,16 @@ function parseObservations(data: unknown): Observation[] {
   return observations
 }
 
-export async function extractClusters(
+async function extractClusterBatch(
   clusters: SampledCluster[],
-  config: StylectConfig,
-  opts: { slug: string; newCommitCount: number; llm: LlmConfig },
-): Promise<ExtractResult> {
-  const repoCacheDir = join(config.cacheDir, opts.slug)
-  const cachePath = extractionsPath(repoCacheDir)
-
-  if (shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount)) {
-    return { extractions: loadExtractions(cachePath), fromCache: true, skippedClusters: 0 }
-  }
-
-  invalidateCompileCache(repoCacheDir)
-
+  llm: LlmConfig,
+): Promise<{ extractions: ClusterExtraction[]; skippedClusters: number }> {
   const extractions: ClusterExtraction[] = []
   let skippedClusters = 0
 
   for (const cluster of clusters) {
     try {
-      const data = await completeJson(opts.llm, EXTRACT_SYSTEM, buildExtractPrompt(cluster))
+      const data = await completeJson(llm, EXTRACT_SYSTEM, buildExtractPrompt(cluster))
       extractions.push({
         repo: cluster.repo,
         language: cluster.language,
@@ -94,10 +93,128 @@ export async function extractClusters(
     }
   }
 
-  const totalObs = extractions.reduce((sum, ext) => sum + ext.observations.length, 0)
-  if (totalObs > 0) {
-    saveExtractions(cachePath, extractions)
+  return { extractions, skippedClusters }
+}
+
+function finalizeExtractions(
+  repoCacheDir: string,
+  cachePath: string,
+  extractions: ClusterExtraction[],
+  clusters: SampledCluster[],
+  cached: ClusterExtraction[] | undefined,
+): { extractions: ClusterExtraction[]; fromCache: boolean } {
+  const aligned = alignExtractionsToClusters(extractions, clusters)
+  const changed = cached ? extractionsDiffer(cached, aligned) : aligned.length > 0
+
+  if (!changed) {
+    return { extractions: aligned, fromCache: true }
   }
 
-  return { extractions, fromCache: false, skippedClusters }
+  const totalObs = aligned.reduce((sum, ext) => sum + ext.observations.length, 0)
+  if (totalObs > 0) {
+    saveExtractions(cachePath, aligned)
+  } else if (existsSync(cachePath)) {
+    rmSync(cachePath, { force: true })
+    invalidateCompileCache(repoCacheDir)
+  }
+
+  return { extractions: aligned, fromCache: false }
+}
+
+export async function extractClusters(
+  clusters: SampledCluster[],
+  config: StylectConfig,
+  opts: {
+    slug: string
+    newCommitCount: number
+    llm: LlmConfig
+    previousClusters?: SampledCluster[]
+  },
+): Promise<ExtractResult> {
+  const repoCacheDir = join(config.cacheDir, opts.slug)
+  const cachePath = extractionsPath(repoCacheDir)
+  const deltaClusters = opts.previousClusters
+    ? findDeltaClusters(opts.previousClusters, clusters)
+    : clusters
+
+  if (shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount)) {
+    const cached = loadExtractions(cachePath)
+    const { extractions, fromCache } = finalizeExtractions(
+      repoCacheDir,
+      cachePath,
+      cached,
+      clusters,
+      cached,
+    )
+    return {
+      extractions,
+      fromCache,
+      skippedClusters: 0,
+      deltaClusterCount: 0,
+    }
+  }
+
+  if (opts.newCommitCount > 0 && deltaClusters.length === 0 && cacheFileExists(cachePath)) {
+    const cached = loadExtractions(cachePath)
+    const { extractions, fromCache } = finalizeExtractions(
+      repoCacheDir,
+      cachePath,
+      cached,
+      clusters,
+      cached,
+    )
+    return {
+      extractions,
+      fromCache,
+      skippedClusters: 0,
+      deltaClusterCount: 0,
+    }
+  }
+
+  invalidateCompileCache(repoCacheDir)
+
+  const previousExtractions = cacheFileExists(cachePath) ? loadExtractions(cachePath) : []
+  const clustersToExtract =
+    config.fresh || previousExtractions.length === 0 ? clusters : deltaClusters
+
+  const { extractions: freshExtractions, skippedClusters } = await extractClusterBatch(
+    clustersToExtract,
+    opts.llm,
+  )
+
+  const merged =
+    config.fresh || previousExtractions.length === 0
+      ? freshExtractions
+      : mergeExtractions(previousExtractions, freshExtractions)
+
+  const { extractions, fromCache } = finalizeExtractions(
+    repoCacheDir,
+    cachePath,
+    merged,
+    clusters,
+    previousExtractions.length > 0
+      ? alignExtractionsToClusters(previousExtractions, clusters)
+      : undefined,
+  )
+
+  return {
+    extractions,
+    fromCache,
+    skippedClusters,
+    deltaClusterCount: deltaClusters.length,
+  }
+}
+
+export function deltaExtractions(
+  extractions: ClusterExtraction[],
+  previousExtractions: ClusterExtraction[],
+  deltaClusters: SampledCluster[],
+): ClusterExtraction[] {
+  const deltaKeys = new Set(deltaClusters.map((cluster) => clusterKey(cluster)))
+  const previousKeys = new Set(previousExtractions.map((extraction) => extractionKey(extraction)))
+
+  return extractions.filter((extraction) => {
+    const key = extractionKey(extraction)
+    return deltaKeys.has(key) || !previousKeys.has(key)
+  })
 }

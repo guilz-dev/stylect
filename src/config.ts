@@ -13,12 +13,16 @@ export type StylectConfig = {
   maxCommits: number
   samplesPerGroup: number
   outputDir: string
+  rulesDir: string
   cacheDir: string
   plan: boolean
   /** @deprecated Use `plan` instead */
   dryRun: boolean
   fresh: boolean
   skipLlm: boolean
+  writeWiki: boolean
+  writeRules: boolean
+  lintFooter: boolean
   githubToken?: string
   cursorApiKey?: string
   model: string
@@ -36,11 +40,15 @@ export function defaultConfig(overrides: Partial<StylectConfig> = {}): StylectCo
     maxCommits: DEFAULT_MAX_COMMITS,
     samplesPerGroup: DEFAULT_SAMPLES_PER_GROUP,
     outputDir: join(process.cwd(), 'wiki'),
+    rulesDir: join(process.cwd(), '.cursor', 'rules'),
     cacheDir: join(home, '.stylect'),
     plan: false,
     dryRun: false,
     fresh: false,
     skipLlm: false,
+    writeWiki: true,
+    writeRules: true,
+    lintFooter: true,
     model: DEFAULT_LLM_MODEL,
     repoPaths: [],
     source: 'auto',

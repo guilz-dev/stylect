@@ -82,6 +82,13 @@ export function buildDimensionPrompt(
   }
 
   lines.push('Observations:')
+  lines.push(formatDimensionObservationLines(observations))
+
+  return lines.join('\n')
+}
+
+export function formatDimensionObservationLines(observations: Observation[]): string {
+  const lines: string[] = []
   for (const [index, obs] of observations.entries()) {
     lines.push(`\n${index + 1}. [${Math.round(obs.confidence * 100)}% confidence]`)
     lines.push(`   Claim: ${obs.claim}`)
@@ -90,7 +97,6 @@ export function buildDimensionPrompt(
       lines.push(`   Language: ${obs.language}`)
     }
   }
-
   return lines.join('\n')
 }
 
@@ -108,6 +114,13 @@ export function buildLanguagePrompt(
   }
 
   lines.push('Observations:')
+  lines.push(formatLanguageObservationLines(observations))
+
+  return lines.join('\n')
+}
+
+export function formatLanguageObservationLines(observations: Observation[]): string {
+  const lines: string[] = []
   for (const [index, obs] of observations.entries()) {
     lines.push(
       `\n${index + 1}. [${Math.round(obs.confidence * 100)}% confidence] (${obs.dimension})`,
@@ -115,7 +128,6 @@ export function buildLanguagePrompt(
     lines.push(`   Claim: ${obs.claim}`)
     lines.push(`   Evidence: ${obs.evidence.join(', ')}`)
   }
-
   return lines.join('\n')
 }
 

@@ -14,6 +14,11 @@ import type { WikiArticle } from '../models/article.js'
 import type { ClusterExtraction } from '../models/extraction.js'
 import { STYLE_DIMENSIONS } from '../models/style-dimension.js'
 import {
+  affectedCompileSlugs,
+  buildEvolveDimensionPrompt,
+  buildEvolveLanguagePrompt,
+} from './evolve.js'
+import {
   buildDimensionPrompt,
   buildLanguagePrompt,
   fixWikilinks,
@@ -21,7 +26,12 @@ import {
   slugifyLanguage,
   validCompileSlugs,
 } from './merge.js'
-import { COMPILE_SYSTEM, LANGUAGE_COMPILE_SYSTEM } from './prompt.js'
+import {
+  COMPILE_SYSTEM,
+  EVOLVE_DIMENSION_SYSTEM,
+  EVOLVE_LANGUAGE_SYSTEM,
+  LANGUAGE_COMPILE_SYSTEM,
+} from './prompt.js'
 
 export type CompileResult = {
   articles: WikiArticle[]
@@ -50,10 +60,28 @@ function parseArticleData(
   return { slug, title, category, confidence, sourceRepos, content, wikilinks }
 }
 
+function preserveUncompiledArticles(
+  articles: WikiArticle[],
+  existingArticles: WikiArticle[],
+  validSlugs: string[],
+): WikiArticle[] {
+  const writtenSlugs = new Set(articles.map((article) => article.slug))
+  const valid = new Set(validSlugs)
+  const preserved = existingArticles.filter(
+    (article) => !writtenSlugs.has(article.slug) && valid.has(article.slug),
+  )
+  return [...articles, ...preserved].sort((left, right) => left.slug.localeCompare(right.slug))
+}
+
 export async function compileWiki(
   extractions: ClusterExtraction[],
   config: StylectConfig,
-  opts: { slug: string; newCommitCount: number; llm: LlmConfig },
+  opts: {
+    slug: string
+    newCommitCount: number
+    llm: LlmConfig
+    deltaExtractions?: ClusterExtraction[]
+  },
 ): Promise<CompileResult> {
   const repoCacheDir = join(config.cacheDir, opts.slug)
   const cachePath = articlesPath(repoCacheDir)
@@ -66,25 +94,56 @@ export async function compileWiki(
     return { articles: loadArticles(cachePath), fromCache: true, failedSlugs: [] }
   }
 
+  const existingArticles =
+    cacheFileExists(cachePath) && opts.newCommitCount > 0 ? loadArticles(cachePath) : []
+  const deltaExtractions = opts.deltaExtractions ?? []
+  const incremental = !config.fresh && opts.newCommitCount > 0 && existingArticles.length > 0
   const { byDimension, byLanguage, repos } = groupObservations(extractions)
-  const reposList = [...repos].sort()
   const validSlugs = validCompileSlugs(byDimension, byLanguage)
+  const affectedSlugs = incremental ? affectedCompileSlugs(deltaExtractions) : undefined
+
+  if (incremental && affectedSlugs && affectedSlugs.size === 0) {
+    const valid = new Set(validSlugs)
+    const filtered = existingArticles.filter((article) => valid.has(article.slug))
+    if (filtered.length !== existingArticles.length) {
+      const fixed = fixWikilinks(filtered)
+      saveArticles(cachePath, fixed)
+      return { articles: fixed, fromCache: false, failedSlugs: [] }
+    }
+    return { articles: existingArticles, fromCache: true, failedSlugs: [] }
+  }
+
+  const deltaGrouped = incremental ? groupObservations(deltaExtractions) : null
+  const reposList = [...repos].sort()
+  const existingBySlug = new Map(existingArticles.map((article) => [article.slug, article]))
 
   const articles: WikiArticle[] = []
   const failedSlugs: string[] = []
 
   for (const dimension of STYLE_DIMENSIONS) {
     const observations = byDimension.get(dimension) ?? []
+    const existing = existingBySlug.get(dimension)
+
     if (observations.length === 0) {
       continue
     }
 
+    if (incremental && affectedSlugs && !affectedSlugs.has(dimension) && existing) {
+      articles.push(existing)
+      continue
+    }
+
+    const evolveObservations =
+      incremental && existing && deltaGrouped
+        ? (deltaGrouped.byDimension.get(dimension) ?? [])
+        : observations
+
     try {
-      const data = await completeJson(
-        opts.llm,
-        COMPILE_SYSTEM,
-        buildDimensionPrompt(dimension, observations, validSlugs),
-      )
+      const system = existing ? EVOLVE_DIMENSION_SYSTEM : COMPILE_SYSTEM
+      const prompt = existing
+        ? buildEvolveDimensionPrompt(dimension, existing, evolveObservations, validSlugs)
+        : buildDimensionPrompt(dimension, observations, validSlugs)
+      const data = await completeJson(opts.llm, system, prompt)
       articles.push(
         parseArticleData(
           data,
@@ -98,32 +157,53 @@ export async function compileWiki(
       failedSlugs.push(dimension)
       const message = error instanceof Error ? error.message : String(error)
       process.stderr.write(`compile: skipped ${dimension}: ${message}\n`)
+      if (existing) {
+        articles.push(existing)
+      }
     }
   }
 
   for (const [language, observations] of [...byLanguage.entries()].sort(([a], [b]) =>
     a.localeCompare(b),
   )) {
+    const slug = slugifyLanguage(language)
+    const existing = existingBySlug.get(slug)
+
     if (observations.length === 0) {
       continue
     }
-    const slug = slugifyLanguage(language)
+
+    if (incremental && affectedSlugs && !affectedSlugs.has(slug) && existing) {
+      articles.push(existing)
+      continue
+    }
+
+    const evolveObservations =
+      incremental && existing && deltaGrouped
+        ? (deltaGrouped.byLanguage.get(language) ?? [])
+        : observations
+
     try {
-      const data = await completeJson(
-        opts.llm,
-        LANGUAGE_COMPILE_SYSTEM,
-        buildLanguagePrompt(language, observations, validSlugs),
-      )
+      const system = existing ? EVOLVE_LANGUAGE_SYSTEM : LANGUAGE_COMPILE_SYSTEM
+      const prompt = existing
+        ? buildEvolveLanguagePrompt(language, existing, evolveObservations, validSlugs)
+        : buildLanguagePrompt(language, observations, validSlugs)
+      const data = await completeJson(opts.llm, system, prompt)
       articles.push(parseArticleData(data, slug, 'language', reposList, `${language} Style`))
     } catch (error) {
       failedSlugs.push(slug)
       const message = error instanceof Error ? error.message : String(error)
       process.stderr.write(`compile: skipped ${language}: ${message}\n`)
+      if (existing) {
+        articles.push(existing)
+      }
     }
   }
 
-  if (articles.length > 0) {
-    const fixed = fixWikilinks(articles)
+  const combined = preserveUncompiledArticles(articles, existingArticles, validSlugs)
+
+  if (combined.length > 0) {
+    const fixed = fixWikilinks(combined)
     saveArticles(cachePath, fixed)
     return { articles: fixed, fromCache: false, failedSlugs }
   }

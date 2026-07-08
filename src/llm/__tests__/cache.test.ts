@@ -25,7 +25,7 @@ import {
 describe('resolveLlmStageNeeds', () => {
   it('returns all false when skipLlm is set', () => {
     const config = defaultConfig({ skipLlm: true })
-    expect(resolveLlmStageNeeds(config, 'owner__repo', 0, false)).toEqual({
+    expect(resolveLlmStageNeeds(config, 'owner__repo', 0, 0)).toEqual({
       extract: false,
       compile: false,
       lint: false,
@@ -34,18 +34,36 @@ describe('resolveLlmStageNeeds', () => {
       needsCursorApiKey(config, {
         slug: 'owner__repo',
         newCommitCount: 0,
-        samplesRecalculated: false,
+        deltaClusterCount: 0,
       }),
     ).toBe(false)
   })
 
-  it('requires all stages when samples were recalculated', () => {
+  it('requires all stages when delta clusters exist', () => {
     const config = defaultConfig({ repos: ['owner/repo'] })
-    expect(resolveLlmStageNeeds(config, 'owner__repo', 0, true)).toEqual({
+    expect(resolveLlmStageNeeds(config, 'owner__repo', 2, 1)).toEqual({
       extract: true,
       compile: true,
       lint: true,
     })
+  })
+
+  it('uses cache when new commits exist but no cluster delta', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stylect-llm-stable-'))
+    const slug = 'owner__repo'
+    const repoCacheDir = join(dir, slug)
+    ensureParentDir(extractionsPath(repoCacheDir))
+    writeFileSync(extractionsPath(repoCacheDir), '[]\n')
+    writeFileSync(articlesPath(repoCacheDir), '[]\n')
+    writeFileSync(lintPath(repoCacheDir), '{"issues":[],"passed":true}\n')
+
+    const config = defaultConfig({ cacheDir: dir, repos: ['owner/repo'] })
+    expect(resolveLlmStageNeeds(config, slug, 1, 0)).toEqual({
+      extract: false,
+      compile: false,
+      lint: false,
+    })
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 1, deltaClusterCount: 0 })).toBe(false)
   })
 })
 
@@ -135,10 +153,8 @@ describe('needsCursorApiKey', () => {
     writeFileSync(lintPath(repoCacheDir), '{"issues":[],"passed":true}\n')
 
     const config = defaultConfig({ cacheDir: dir, repos: ['owner/repo'] })
-    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, samplesRecalculated: false })).toBe(
-      false,
-    )
-    expect(repoNeedsLlm(config, slug, 0, false)).toBe(false)
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(false)
+    expect(repoNeedsLlm(config, slug, 0, 0)).toBe(false)
   })
 
   it('requires only missing stages when caches are partially present', () => {
@@ -150,22 +166,16 @@ describe('needsCursorApiKey', () => {
     writeFileSync(articlesPath(repoCacheDir), '[]\n')
 
     const config = defaultConfig({ cacheDir: dir, repos: ['owner/repo'] })
-    const needs = resolveLlmStageNeeds(config, slug, 0, false)
+    const needs = resolveLlmStageNeeds(config, slug, 0, 0)
     expect(needs).toEqual({ extract: false, compile: false, lint: true })
-    expect(repoNeedsLlm(config, slug, 0, false)).toBe(true)
-    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, samplesRecalculated: false })).toBe(
-      true,
-    )
+    expect(repoNeedsLlm(config, slug, 0, 0)).toBe(true)
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(true)
   })
 
-  it('returns true when samples were recalculated', () => {
+  it('returns true when delta clusters need LLM work', () => {
     const config = defaultConfig({ repos: ['owner/repo'] })
     expect(
-      needsCursorApiKey(config, {
-        slug: 'owner__repo',
-        newCommitCount: 0,
-        samplesRecalculated: true,
-      }),
+      needsCursorApiKey(config, { slug: 'owner__repo', newCommitCount: 1, deltaClusterCount: 1 }),
     ).toBe(true)
   })
 })

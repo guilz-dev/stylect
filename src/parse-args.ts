@@ -49,6 +49,10 @@ export function parseArgv(argv: string[]): ParsedCli {
         config.outputDir = requireValue(rest, i, token)
         i += 1
         break
+      case '--rules-dir':
+        config.rulesDir = requireValue(rest, i, token)
+        i += 1
+        break
       case '--cache':
         config.cacheDir = requireValue(rest, i, token)
         i += 1

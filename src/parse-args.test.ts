@@ -9,14 +9,7 @@ import { formatPlan, planPipeline } from './pipeline/run.js'
 
 describe('parseArgv', () => {
   it('parses run with repo and author', () => {
-    const parsed = parseArgv([
-      'run',
-      '--repo',
-      'owner/repo',
-      '--author',
-      'dev-user',
-      '--plan',
-    ])
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--author', 'dev-user', '--plan'])
     expect(parsed.command).toBe('run')
     expect(parsed.config.repos).toEqual(['owner/repo'])
     expect(parsed.config.author).toBe('dev-user')
@@ -61,6 +54,11 @@ describe('parseArgv', () => {
     ])
     expect(parsed.config.repoPaths).toEqual(['/tmp/repo'])
     expect(parsed.config.source).toBe('local')
+  })
+
+  it('parses --rules-dir', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--rules-dir', '/tmp/rules'])
+    expect(parsed.config.rulesDir).toBe('/tmp/rules')
   })
 
   it('requires --repo for run', () => {

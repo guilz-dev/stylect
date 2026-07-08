@@ -1,6 +1,6 @@
 {
   "name": "@guilz-dev/stylect",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Extract your coding dialect from git history and teach it to coding agents.",
   "type": "module",
   "license": "MIT",
@@ -44,6 +44,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "lint": "biome check src package.json README.md tsconfig.json tsconfig.build.json vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
