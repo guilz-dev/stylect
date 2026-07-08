@@ -1,6 +1,6 @@
 # Stylect 残り実装プラン
 
-**リポジトリ:** `/path/to/stylect`  
+**リポジトリ:** 本リポジトリのルート  
 **詳細設計（Phase 1 fetch/sample）:** [phase1.md](./phase1.md)  
 **参照 OSS:** [arlington-labs/gitstyle](https://github.com/arlington-labs/gitstyle)
 
@@ -446,7 +446,7 @@ pnpm build
 
 node dist/cli.js run \
   -r owner/repo \
-  -a dev-user \
+  -a you \
   --repo-path /path/to/local/clone \
   --since 2024-01-01 -n 500 -s 10
 ```
@@ -457,7 +457,7 @@ node dist/cli.js run \
 export CURSOR_API_KEY=...
 node dist/cli.js run \
   -r owner/repo \
-  -a dev-user \
+  -a you \
   --repo-path /path/to/local/clone \
   -n 200 -s 5
 ```

@@ -30,7 +30,7 @@ node dist/cli.js run --plan --author you --repo owner/name
 ```bash
 # Plan only (no fetch)
 stylect run \
-  --author dev-user \
+  --author you \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
   --since 2024-01-01 \
@@ -38,7 +38,7 @@ stylect run \
 
 # Phase 1: fetch + sample (local git, no LLM token required)
 stylect run \
-  --author dev-user \
+  --author you \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
   --since 2024-01-01 \
@@ -49,7 +49,7 @@ stylect run \
 # Full pipeline through lint (requires CURSOR_API_KEY)
 export CURSOR_API_KEY=...
 stylect run \
-  --author dev-user \
+  --author you \
   --repo owner/repo \
   --repo-path /path/to/local/clone \
   -n 200 -s 5

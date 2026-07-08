@@ -17,7 +17,7 @@
 | 3 | `~/.stylect/<slug>/samples.json` に SampledCluster が書き込まれる | クラスタ数 > 0（対象コミットがある場合） |
 | 4 | 2 回目実行で増分 fetch が動く（`--fresh` 除く） | 新コミットのみ追記、sample は再計算 |
 | 5 | `pnpm test` / CI が通る | unit + fixture テスト |
-| 6 | `example-app` ローカル clone で author フィルタが効く | dev-user のコミットのみ |
+| 6 | ローカル clone で author フィルタが効く | 指定 author のコミットのみ |
 | 7 | `--author` 未指定時はエラー | 個人抽出を誤って全員分取らない |
 
 **Phase 1 完了時点では LLM・wiki・`.cursor/rules` 出力はしない。**
@@ -350,7 +350,7 @@ async function runPipeline(config: StylectConfig) {
 
 ```
 repo: owner/repo
-source: local-git (/Users/kaz/.../example-app)
+source: local-git (/path/to/local/clone)
 language_source: github
 fetched: 847 commits (12 new)
 clusters: 6 (ruby×3, typescript×2, unknown×1)

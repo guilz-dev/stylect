@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ClusterExtraction } from '../../models/extraction.js'
-import { groupObservations, slugifyLanguage, validCompileSlugs } from '../merge.js'
+import { fixWikilinks, groupObservations, slugifyLanguage, validCompileSlugs } from '../merge.js'
 
 describe('groupObservations', () => {
   it('groups by dimension and language idioms', () => {
@@ -66,5 +66,26 @@ describe('validCompileSlugs', () => {
     const slugs = validCompileSlugs(grouped.byDimension, grouped.byLanguage)
     expect(slugs).toContain('patterns')
     expect(slugs).toContain('go')
+  })
+})
+
+describe('fixWikilinks', () => {
+  it('removes self-references and broken links', () => {
+    const fixed = fixWikilinks([
+      {
+        slug: 'patterns',
+        wikilinks: ['patterns', 'missing-slug', 'testing'],
+        content: 'See [[patterns]] and [[missing-slug|Missing]] and [[testing]].',
+      },
+      {
+        slug: 'testing',
+        wikilinks: ['patterns'],
+        content: 'Uses [[testing|Tests]].',
+      },
+    ])
+
+    expect(fixed[0]?.wikilinks).toEqual(['testing'])
+    expect(fixed[0]?.content).toContain('See patterns and Missing and [[testing]]')
+    expect(fixed[1]?.content).toBe('Uses Tests.')
   })
 })
