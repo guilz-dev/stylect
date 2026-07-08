@@ -37,9 +37,12 @@ Options:
       --cache <dir>         Cache directory (default: ~/.stylect)
       --source <mode>       Fetch source: auto, local, or github (default: auto)
   -t, --token <token>       GitHub token (for languages API / GitHub fetch)
+      --model <id>          LLM model for extract/compile/lint (default: composer-2.5)
+      --cursor-api-key <k>  Cursor API key (or set CURSOR_API_KEY)
       --plan                Plan only; skip fetch and later stages
       --dry-run             Alias for --plan (deprecated)
       --fresh               Force full rebuild of repo cache
+      --skip-llm            Stop after sample (Phase 1; no LLM stages)
   -h, --help                Show this help
 
 Examples:
@@ -83,7 +86,10 @@ async function main() {
 
     validateRunConfig(parsed.config)
 
-    await runPipeline(parsed.config)
+    const result = await runPipeline(parsed.config)
+    if (result.lintFailed || result.llmPartialFailure) {
+      process.exitCode = 1
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     process.stderr.write(`${message}\n`)

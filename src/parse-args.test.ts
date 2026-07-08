@@ -39,6 +39,16 @@ describe('parseArgv', () => {
     expect(parsed.config.outputDir).toBe(join(process.cwd(), 'wiki'))
   })
 
+  it('parses --skip-llm', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--skip-llm'])
+    expect(parsed.config.skipLlm).toBe(true)
+  })
+
+  it('parses --model', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--model', 'composer-2.5'])
+    expect(parsed.config.model).toBe('composer-2.5')
+  })
+
   it('parses --repo-path and --source', () => {
     const parsed = parseArgv([
       'run',
@@ -68,5 +78,17 @@ describe('planPipeline', () => {
     )
     expect(plan.llmStages).toEqual([])
     expect(formatPlan(plan)).toContain('plan: true')
+  })
+
+  it('skips LLM stages with --skip-llm', () => {
+    const plan = planPipeline(
+      defaultConfig({
+        repos: ['owner/repo'],
+        skipLlm: true,
+      }),
+    )
+    expect(plan.stages).toEqual(['fetch', 'sample'])
+    expect(plan.llmStages).toEqual([])
+    expect(formatPlan(plan)).toContain('skip LLM: true')
   })
 })

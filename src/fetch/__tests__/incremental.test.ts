@@ -95,6 +95,7 @@ describe('incremental fetch', () => {
     })
     const samplesPath = join(cacheDir, 'owner__repo', 'samples.json')
     expect(existsSync(samplesPath)).toBe(true)
+    expect(firstSamples.fromCache).toBe(false)
 
     commitFile(repoPath, 'dev-user', 'two.rb', `content ${Date.now()}\n`, 'second commit')
     const secondFetch = await fetch('owner/repo', config)
@@ -104,12 +105,13 @@ describe('incremental fetch', () => {
     })
 
     expect(secondFetch.newCommits.length).toBeGreaterThan(0)
-    expect(secondSamples.length).toBeGreaterThan(0)
+    expect(secondSamples.fromCache).toBe(false)
+    expect(secondSamples.clusters.length).toBeGreaterThan(0)
     const persisted = JSON.parse(readFileSync(samplesPath, 'utf8')) as Array<{
       total_in_group: number
     }>
     expect(persisted[0]?.total_in_group).toBe(2)
-    expect(firstSamples).not.toEqual(secondSamples)
+    expect(firstSamples.clusters).not.toEqual(secondSamples.clusters)
   })
 })
 

@@ -58,6 +58,14 @@ export function parseArgv(argv: string[]): ParsedCli {
         config.githubToken = requireValue(rest, i, token)
         i += 1
         break
+      case '--model':
+        config.model = requireValue(rest, i, token)
+        i += 1
+        break
+      case '--cursor-api-key':
+        config.cursorApiKey = requireValue(rest, i, token)
+        i += 1
+        break
       case '--source':
         config.source = parseSource(requireValue(rest, i, token))
         i += 1
@@ -71,6 +79,9 @@ export function parseArgv(argv: string[]): ParsedCli {
         break
       case '--fresh':
         config.fresh = true
+        break
+      case '--skip-llm':
+        config.skipLlm = true
         break
       case '--help':
       case '-h':

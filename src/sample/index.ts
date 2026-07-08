@@ -5,14 +5,20 @@ import type { StylectConfig } from '../config.js'
 import { loadSamples, saveSamples } from '../fetch/cache.js'
 import type { SampledCluster } from '../models/cluster.js'
 import type { RawCommit } from '../models/commit.js'
+import { shouldUseCache } from '../util/cache-policy.js'
 import { sampleGroup } from './select.js'
+
+export type SampleResult = {
+  clusters: SampledCluster[]
+  fromCache: boolean
+}
 
 export function shouldUseSampleCache(
   fresh: boolean,
   cacheExists: boolean,
   newCommitCount: number,
 ): boolean {
-  return !fresh && cacheExists && newCommitCount === 0
+  return shouldUseCache(fresh, cacheExists, newCommitCount)
 }
 
 export function buildClusters(commits: RawCommit[], samplesPerGroup: number): SampledCluster[] {
@@ -52,12 +58,12 @@ export function sampleCommits(
   commits: RawCommit[],
   config: StylectConfig,
   opts: { slug: string; newCommitCount: number },
-): SampledCluster[] {
+): SampleResult {
   const samplesPath = join(config.cacheDir, opts.slug, 'samples.json')
   const cacheExists = existsSync(samplesPath)
 
   if (shouldUseSampleCache(config.fresh, cacheExists, opts.newCommitCount)) {
-    return loadSamples(samplesPath)
+    return { clusters: loadSamples(samplesPath), fromCache: true }
   }
 
   const clusters = buildClusters(commits, config.samplesPerGroup)
@@ -65,5 +71,5 @@ export function sampleCommits(
     saveSamples(samplesPath, clusters)
   }
 
-  return clusters
+  return { clusters, fromCache: false }
 }
