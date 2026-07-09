@@ -39,7 +39,7 @@ import {
 } from './prompt.js'
 import { looksTruncatedArticleContent } from './validate-article.js'
 
-const COMPILE_TRUNCATION_RETRIES = 2
+const COMPILE_TRUNCATION_RETRIES = 3
 
 export type CompileResult = {
   articles: WikiArticle[]
@@ -75,18 +75,20 @@ async function compileArticleJson(
   slug: string,
 ): Promise<unknown> {
   let currentPrompt = prompt
-  let lastError: Error | undefined
+  let lastData: unknown
+  let lastContent = ''
 
   for (let attempt = 0; attempt <= COMPILE_TRUNCATION_RETRIES; attempt += 1) {
     const data = await completeJson(llm, system, currentPrompt)
     const record = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
     const content = typeof record.content === 'string' ? record.content : ''
+    lastData = data
+    lastContent = content
 
     if (!looksTruncatedArticleContent(content)) {
       return data
     }
 
-    lastError = new Error(`compiled article "${slug}" looks truncated`)
     if (attempt >= COMPILE_TRUNCATION_RETRIES) {
       break
     }
@@ -94,7 +96,14 @@ async function compileArticleJson(
     currentPrompt = `${prompt}\n\nIMPORTANT: Your previous response was cut off mid-sentence. Return the FULL article with complete final sentences and sections.`
   }
 
-  throw lastError ?? new Error(`compiled article "${slug}" looks truncated`)
+  if (lastContent.trim().length > 0) {
+    process.stderr.write(
+      `compile: warning: article "${slug}" may be truncated; keeping last LLM response\n`,
+    )
+    return lastData
+  }
+
+  throw new Error(`compiled article "${slug}" looks truncated`)
 }
 
 function preserveUncompiledArticles(
@@ -243,7 +252,6 @@ export async function compileWiki(
       const data = await compileArticleJson(opts.llm, system, prompt, slug)
       articles.push(parseArticleData(data, slug, 'language', reposList, `${language} Style`))
     } catch (error) {
-      failedSlugs.push(slug)
       const message = error instanceof Error ? error.message : String(error)
       process.stderr.write(`compile: skipped ${language}: ${message}\n`)
       if (existing) {

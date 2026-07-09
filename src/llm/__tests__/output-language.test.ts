@@ -11,5 +11,6 @@ describe('withOutputLanguage', () => {
   it('appends Japanese requirement', () => {
     const prompt = withOutputLanguage('Base prompt', 'ja')
     expect(prompt).toContain('Write all prose in Japanese')
+    expect(prompt).toContain('The developer tends to')
   })
 })
