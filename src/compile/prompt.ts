@@ -8,14 +8,16 @@ Requirements:
 - Write in third person ("The developer tends to...")
 - Use Obsidian-compatible [[wikilinks]] to cross-reference other dimensions
 - Cite specific commit SHAs inline as evidence (format: [abc1234])
+- Use exact CLI flag and environment variable names from the codebase (e.g. --output-lang, not --output-language)
 - Include a confidence assessment
 - Be specific and concrete — avoid vague generalities
 - If observations conflict, note the contradiction and which has stronger evidence
 - Do NOT link an article to itself (no self-referential wikilinks)
 - This repository is a single TypeScript codebase; language clusters (e.g. JavaScript vs TypeScript files in history) are not separate codebases
+- The write pipeline stage is implemented under src/writer/; src/pipeline/write.ts is only the cache-only stylect write CLI entry
 - Complete all sentences fully — never end an article mid-sentence
 
-Return valid JSON:
+Return valid JSON only. The "content" value must be a valid JSON string (escape newlines as \\n, quotes as \\"):
 {
   "title": "...",
   "content": "... markdown body ...",
@@ -31,13 +33,15 @@ Requirements:
 - Write in third person ("The developer tends to...")
 - Use Obsidian-compatible [[wikilinks]] to cross-reference other dimensions
 - Cite specific commit SHAs inline as evidence (format: [abc1234])
+- Use exact CLI flag and environment variable names from the codebase (e.g. --output-lang, not --output-language)
 - Update confidence if warranted
 - If observations conflict with the existing article, note the contradiction and which has stronger evidence
 - Do NOT link an article to itself (no self-referential wikilinks)
 - This repository is a single TypeScript codebase; language clusters (e.g. JavaScript vs TypeScript files in history) are not separate codebases
+- The write pipeline stage is implemented under src/writer/; src/pipeline/write.ts is only the cache-only stylect write CLI entry
 - Complete all sentences fully — never end an article mid-sentence
 
-Return valid JSON:
+Return valid JSON only. The "content" value must be a valid JSON string (escape newlines as \\n, quotes as \\"):
 {
   "title": "...",
   "content": "... markdown body ...",
@@ -53,7 +57,7 @@ Cite commit SHAs inline. Be specific.
 Do NOT link an article to itself (no self-referential wikilinks).
 Complete all sentences fully — never end an article mid-sentence.
 
-Return valid JSON:
+Return valid JSON only. The "content" value must be a valid JSON string (escape newlines as \\n, quotes as \\"):
 {
   "title": "...",
   "content": "... markdown body ...",
@@ -70,7 +74,7 @@ Cite commit SHAs inline. Be specific.
 Do NOT link an article to itself (no self-referential wikilinks).
 Complete all sentences fully — never end an article mid-sentence.
 
-Return valid JSON:
+Return valid JSON only. The "content" value must be a valid JSON string (escape newlines as \\n, quotes as \\"):
 {
   "title": "...",
   "content": "... markdown body ...",

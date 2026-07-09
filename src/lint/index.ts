@@ -25,6 +25,10 @@ export type LintResult = {
   fromCache: boolean
 }
 
+function hasErrorSeverity(issues: LintIssue[]): boolean {
+  return issues.some((issue) => issue.severity === 'error')
+}
+
 function buildLintPrompt(articles: WikiArticle[]): string {
   const lines = [`Wiki contains ${articles.length} articles:\n`]
   const existingSlugs = articles.map((article) => article.slug)
@@ -33,7 +37,8 @@ function buildLintPrompt(articles: WikiArticle[]): string {
     lines.push(`## ${article.slug} (confidence: ${Math.round(article.confidence * 100)}%)`)
     lines.push(`Category: ${article.category}`)
     lines.push(`Wikilinks: ${article.wikilinks.join(', ')}`)
-    lines.push(article.content.slice(0, 2000))
+    lines.push(`Content length: ${article.content.length} characters (full body below)`)
+    lines.push(article.content)
     lines.push('')
   }
 
@@ -106,7 +111,7 @@ export async function lintWiki(
     const issues = [...staticIssues, ...report.issues]
     const merged: LintReport = {
       issues,
-      passed: report.passed && staticIssues.length === 0,
+      passed: !hasErrorSeverity(issues),
     }
     saveLint(cachePath, merged)
     saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })

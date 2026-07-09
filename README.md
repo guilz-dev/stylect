@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`1.3.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, and output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`).
+Early development (`1.3.1`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, and output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`).
 
 ## Install
 

@@ -1,4 +1,14 @@
 /** Heuristic: compiled wiki body ended before a complete sentence or block. */
+function hasOddCount(text: string, char: string): boolean {
+  return text.split(char).length % 2 === 0
+}
+
+function hasUnbalancedBrackets(text: string): boolean {
+  const opens = text.match(/\[/g)?.length ?? 0
+  const closes = text.match(/\]/g)?.length ?? 0
+  return opens !== closes
+}
+
 export function looksTruncatedArticleContent(content: string): boolean {
   const trimmed = content.trimEnd()
   if (trimmed.length === 0) {
@@ -9,7 +19,7 @@ export function looksTruncatedArticleContent(content: string): boolean {
     return true
   }
 
-  if (/`[^`\n]*$/.test(trimmed) || /\[[^\]\n]*$/.test(trimmed)) {
+  if (hasOddCount(trimmed, '`') || hasUnbalancedBrackets(trimmed)) {
     return true
   }
 
@@ -26,6 +36,14 @@ export function looksTruncatedArticleContent(content: string): boolean {
     return true
   }
 
-  const lastChar = lastLine.at(-1) ?? ''
-  return !/[.!?。`)」』\]>*_]/.test(lastChar)
+  if (/[.!?。`)」』\]>*_]$/.test(lastLine)) {
+    return false
+  }
+
+  // Short tail lines that end mid-token are usually LLM cut-offs.
+  if (lastLine.length < 48 && /[`\w]$/.test(lastLine)) {
+    return true
+  }
+
+  return false
 }

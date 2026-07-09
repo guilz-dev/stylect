@@ -87,6 +87,46 @@ describe('lintWiki', () => {
     expect(completeJson).not.toHaveBeenCalled()
   })
 
+  it('sends full article content to the LLM', async () => {
+    const cacheDir = mkdtempSync(join(tmpdir(), 'stylect-lint-full-'))
+    const slug = 'owner__repo'
+    const longContent = `${'paragraph. '.repeat(400)}End.`
+    const longArticle: WikiArticle = { ...article, content: longContent }
+
+    vi.mocked(completeJson).mockResolvedValue({ issues: [], passed: true })
+
+    const config = defaultConfig({ cacheDir, repos: ['owner/repo'] })
+    await lintWiki([longArticle], config, {
+      slug,
+      newCommitCount: 1,
+      llm: { apiKey: 'key', model: 'composer-2.5' },
+    })
+
+    const prompt = String(vi.mocked(completeJson).mock.calls[0]?.[2] ?? '')
+    expect(prompt).toContain(longContent)
+    expect(prompt).toContain('Content length:')
+  })
+
+  it('passes when only warnings are reported', async () => {
+    const cacheDir = mkdtempSync(join(tmpdir(), 'stylect-lint-warn-'))
+    const slug = 'owner__repo'
+
+    vi.mocked(completeJson).mockResolvedValue({
+      issues: [{ article: 'patterns', severity: 'warning', message: 'weak evidence' }],
+      passed: false,
+    })
+
+    const config = defaultConfig({ cacheDir, repos: ['owner/repo'] })
+    const result = await lintWiki([article], config, {
+      slug,
+      newCommitCount: 1,
+      llm: { apiKey: 'key', model: 'composer-2.5' },
+    })
+
+    expect(result.report.passed).toBe(true)
+    expect(result.report.issues).toHaveLength(1)
+  })
+
   it('persists an error report when LLM fails', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'stylect-lint-fail-'))
     const slug = 'owner__repo'
