@@ -65,6 +65,7 @@ describe('runWritePipeline', () => {
     expect(result.lintFailed).toBe(false)
     expect(existsSync(join(wikiDir, 'patterns.md'))).toBe(true)
     expect(existsSync(join(wikiDir, 'index.md'))).toBe(true)
+    expect(existsSync(join(wikiDir, '_meta', 'lint.md'))).toBe(true)
     expect(existsSync(join(rulesDir, 'stylect-patterns.mdc'))).toBe(true)
     expect(readFileSync(join(wikiDir, 'patterns.md'), 'utf8')).toContain('Uses small modules.')
   })

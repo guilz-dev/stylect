@@ -3,8 +3,9 @@ import { join } from 'node:path'
 import type { StylectConfig } from '../config.js'
 import {
   articlesPath,
+  buildLlmCacheMeta,
   cacheFileExists,
-  isOutputLanguageCacheCompatible,
+  isLlmCacheCompatible,
   lintPath,
   llmMetaPath,
   loadLint,
@@ -82,13 +83,10 @@ export async function lintWiki(
   const repoCacheDir = join(config.cacheDir, opts.slug)
   const cachePath = lintPath(repoCacheDir)
   const articlesCachePath = articlesPath(repoCacheDir)
-  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
-    loadLlmMeta(llmMetaPath(repoCacheDir)),
-    config.outputLanguage,
-  )
+  const llmCacheCompatible = isLlmCacheCompatible(loadLlmMeta(llmMetaPath(repoCacheDir)), config)
 
   if (
-    outputLanguageCompatible &&
+    llmCacheCompatible &&
     shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount) &&
     cacheFileExists(articlesCachePath)
   ) {
@@ -114,7 +112,7 @@ export async function lintWiki(
       passed: !hasErrorSeverity(issues),
     }
     saveLint(cachePath, merged)
-    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
+    saveLlmMeta(llmMetaPath(repoCacheDir), buildLlmCacheMeta(config))
     return { report: merged, fromCache: false }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -129,7 +127,7 @@ export async function lintWiki(
       passed: false,
     }
     saveLint(cachePath, report)
-    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
+    saveLlmMeta(llmMetaPath(repoCacheDir), buildLlmCacheMeta(config))
     return { report, fromCache: false }
   }
 }

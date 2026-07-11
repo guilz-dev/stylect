@@ -145,10 +145,12 @@ describe('writeWiki', () => {
     expect(existsSync(join(outputDir, 'patterns.md'))).toBe(true)
     expect(existsSync(join(outputDir, 'languages', 'ruby.md'))).toBe(true)
     expect(existsSync(join(outputDir, 'index.md'))).toBe(true)
+    expect(existsSync(join(outputDir, '_meta', 'lint.md'))).toBe(true)
     expect(existsSync(join(outputDir, '_meta', 'generation-log.md'))).toBe(true)
 
     const log = readFileSync(join(outputDir, '_meta', 'generation-log.md'), 'utf8')
     expect(log).toContain('owner/a')
+    expect(log).toContain('details: [Lint report](./lint.md)')
     expect(readFileSync(join(outputDir, 'index.md'), 'utf8')).toContain('[[patterns|Patterns]]')
   })
 
@@ -165,5 +167,46 @@ describe('writeWiki', () => {
 
     const patterns = readFileSync(join(outputDir, 'patterns.md'), 'utf8')
     expect(patterns).toContain('[[languages/ruby]]')
+  })
+
+  it('renders lint issue details in _meta/lint.md', () => {
+    const outputDir = mkdtempSync(join(tmpdir(), 'stylect-wiki-lint-'))
+    const merged = mergeRepoArtifacts([
+      {
+        repo: 'owner/a',
+        status: 'complete',
+        articles: [articleA, languageArticle],
+        lint: {
+          passed: true,
+          issues: [
+            {
+              article: 'patterns',
+              severity: 'warning',
+              message: 'Prompt structure is overstated.',
+              suggestion: 'Clarify where prompt builders live.',
+            },
+            {
+              article: '_meta',
+              severity: 'info',
+              message: 'Reader-facing caveat is missing.',
+            },
+          ],
+        },
+        newCommitCount: 0,
+        upToDate: false,
+      },
+    ])
+    const config = defaultConfig({ outputDir, author: 'dev' })
+
+    writeWiki(merged, config)
+
+    const lint = readFileSync(join(outputDir, '_meta', 'lint.md'), 'utf8')
+    expect(lint).toContain('- passed: true')
+    expect(lint).toContain('- total issues: 2')
+    expect(lint).toContain('## Warnings')
+    expect(lint).toContain('[Patterns](../patterns.md)')
+    expect(lint).toContain('Suggestion: Clarify where prompt builders live.')
+    expect(lint).toContain('## Infos')
+    expect(lint).toContain('### `_meta`')
   })
 })

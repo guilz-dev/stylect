@@ -63,7 +63,7 @@ describe('extractClusters', () => {
     const result = await extractClusters([cluster], config, {
       slug,
       newCommitCount: 0,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.fromCache).toBe(true)
@@ -84,7 +84,7 @@ describe('extractClusters', () => {
     await extractClusters([cluster], config, {
       slug,
       newCommitCount: 0,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(existsSync(articlesPath(repoCacheDir))).toBe(false)
@@ -116,7 +116,7 @@ describe('extractClusters', () => {
     const result = await extractClusters([cluster, secondCluster], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.skippedClusters).toBe(1)
@@ -149,7 +149,7 @@ describe('extractClusters', () => {
     const result = await extractClusters([cluster], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
       previousClusters: [cluster],
     })
 
@@ -200,7 +200,7 @@ describe('extractClusters', () => {
     const result = await extractClusters([typescriptCluster], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
       previousClusters: [typescriptCluster, rubyCluster],
     })
 
@@ -250,7 +250,7 @@ describe('extractClusters', () => {
     const result = await extractClusters([changedCluster], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
       previousClusters: [cluster],
     })
 

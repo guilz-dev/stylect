@@ -47,9 +47,11 @@ Options:
       --cache <dir>         Cache directory (default: ~/.stylect)
       --source <mode>       Fetch source: auto, local, or github (default: auto)
   -t, --token <token>       GitHub token (for languages API / GitHub fetch)
-      --model <id>          LLM model for extract/compile/lint (default: composer-2.5)
+      --llm-provider <id>   LLM provider: anthropic, cursor, or openai (default: cursor)
+      --llm-api-key <k>     LLM API key (or provider env var)
+      --model <id>          LLM model for extract/compile/lint (provider-specific default)
       --output-lang <lang>  Output language: en or ja (default: en)
-      --cursor-api-key <k>  Cursor API key (or set CURSOR_API_KEY)
+      --cursor-api-key <k>  Cursor API key alias (or set CURSOR_API_KEY)
       --plan                Plan only; skip fetch and later stages
       --dry-run             Alias for --plan (deprecated)
       --fresh               Force full rebuild of repo cache

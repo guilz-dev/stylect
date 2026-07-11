@@ -9,11 +9,11 @@ import { fetch } from '../fetch/index.js'
 import { lintWiki } from '../lint/index.js'
 import { extractionsPath, loadExtractions } from '../llm/cache.js'
 import type { LlmConfig } from '../llm/cursor.js'
-import { resolveCursorApiKey } from '../llm/token.js'
+import { resolveLlmApiKey } from '../llm/token.js'
 import type { SampledCluster } from '../models/cluster.js'
 import { findDeltaClusters } from '../sample/delta.js'
 import { sampleCommits } from '../sample/index.js'
-import { needsCursorApiKey } from '../util/llm-requirements.js'
+import { needsLlmApiKey } from '../util/llm-requirements.js'
 import { perRepoLimit, repoToSlug } from '../util/repo-path.js'
 import { logLlmSummary, logSampleSummary } from './log.js'
 import type { RepoLlmResult } from './types.js'
@@ -55,12 +55,12 @@ export async function processRepo(repo: string, config: StylectConfig): Promise<
     return emptyOutcome(repo, 'skipped-llm', newCommitCount)
   }
 
-  if (needsCursorApiKey(config, llmOpts)) {
-    const apiKey = resolveCursorApiKey(config.cursorApiKey)
+  if (needsLlmApiKey(config, llmOpts)) {
+    const apiKey = resolveLlmApiKey(config.llmProvider, config.llmApiKey, config.cursorApiKey)
     if (!apiKey) {
       process.stderr.write(
-        `stylect: no CURSOR_API_KEY; stopping after sample for ${repo}. ` +
-          'Set CURSOR_API_KEY or pass --skip-llm to suppress this message.\n',
+        `stylect: no ${missingApiKeyHint(config.llmProvider)}; stopping after sample for ${repo}. ` +
+          `Set ${missingApiKeyHint(config.llmProvider)}, pass --llm-api-key, or use --skip-llm to suppress this message.\n`,
       )
       logSampleSummary(repo, fetchResult, sampleResult.clusters, repoCacheDir)
       return emptyOutcome(repo, 'skipped-no-key', newCommitCount)
@@ -172,18 +172,33 @@ function resolveLlmConfig(
   config: StylectConfig,
   opts: { slug: string; newCommitCount: number; deltaClusterCount: number },
 ): LlmConfig {
-  if (!needsCursorApiKey(config, opts)) {
-    return { apiKey: config.cursorApiKey ?? '', model: config.model }
+  if (!needsLlmApiKey(config, opts)) {
+    return {
+      provider: config.llmProvider,
+      apiKey: config.llmApiKey ?? config.cursorApiKey ?? '',
+      model: config.model,
+    }
   }
 
-  const apiKey = resolveCursorApiKey(config.cursorApiKey)
+  const apiKey = resolveLlmApiKey(config.llmProvider, config.llmApiKey, config.cursorApiKey)
   if (!apiKey) {
     throw new Error(
-      'CURSOR_API_KEY required for extract/compile/lint. Set CURSOR_API_KEY, pass --cursor-api-key, or use --skip-llm.',
+      `${missingApiKeyHint(config.llmProvider)} required for extract/compile/lint. Set ${missingApiKeyHint(config.llmProvider)}, pass --llm-api-key, or use --skip-llm.`,
     )
   }
 
-  return { apiKey, model: config.model }
+  return { provider: config.llmProvider, apiKey, model: config.model }
+}
+
+function missingApiKeyHint(provider: StylectConfig['llmProvider']): string {
+  switch (provider) {
+    case 'anthropic':
+      return 'ANTHROPIC_API_KEY'
+    case 'openai':
+      return 'OPENAI_API_KEY'
+    case 'cursor':
+      return 'CURSOR_API_KEY'
+  }
 }
 
 function assertClustersNonEmpty(repo: string, clusters: SampledCluster[]): void {

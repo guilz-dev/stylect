@@ -32,6 +32,12 @@ describe('parseArgv', () => {
     expect(parsed.config.outputDir).toBe(join(process.cwd(), 'wiki'))
   })
 
+  it('uses the provider default model when defaultConfig overrides llmProvider', () => {
+    const config = defaultConfig({ llmProvider: 'openai' })
+    expect(config.llmProvider).toBe('openai')
+    expect(config.model).toBe('gpt-4.1-mini')
+  })
+
   it('parses --skip-llm', () => {
     const parsed = parseArgv(['run', '--repo', 'owner/repo', '--skip-llm'])
     expect(parsed.config.skipLlm).toBe(true)
@@ -40,6 +46,45 @@ describe('parseArgv', () => {
   it('parses --model', () => {
     const parsed = parseArgv(['run', '--repo', 'owner/repo', '--model', 'composer-2.5'])
     expect(parsed.config.model).toBe('composer-2.5')
+  })
+
+  it('parses --llm-provider and swaps the default model', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--llm-provider', 'openai'])
+    expect(parsed.config.llmProvider).toBe('openai')
+    expect(parsed.config.model).toBe('gpt-4.1-mini')
+  })
+
+  it('resets model when --model appears before --llm-provider', () => {
+    const parsed = parseArgv([
+      'run',
+      '--repo',
+      'owner/repo',
+      '--model',
+      'composer-2.5',
+      '--llm-provider',
+      'openai',
+    ])
+    expect(parsed.config.llmProvider).toBe('openai')
+    expect(parsed.config.model).toBe('gpt-4.1-mini')
+  })
+
+  it('keeps model when it appears after --llm-provider', () => {
+    const parsed = parseArgv([
+      'run',
+      '--repo',
+      'owner/repo',
+      '--llm-provider',
+      'openai',
+      '--model',
+      'gpt-4.1',
+    ])
+    expect(parsed.config.llmProvider).toBe('openai')
+    expect(parsed.config.model).toBe('gpt-4.1')
+  })
+
+  it('parses --llm-api-key', () => {
+    const parsed = parseArgv(['run', '--repo', 'owner/repo', '--llm-api-key', 'secret'])
+    expect(parsed.config.llmApiKey).toBe('secret')
   })
 
   it('parses --output-lang', () => {
@@ -58,6 +103,22 @@ describe('parseArgv', () => {
         delete process.env.STYLECT_OUTPUT_LANG
       } else {
         process.env.STYLECT_OUTPUT_LANG = previous
+      }
+    }
+  })
+
+  it('uses STYLECT_LLM_PROVIDER when flag is absent', () => {
+    const previous = process.env.STYLECT_LLM_PROVIDER
+    process.env.STYLECT_LLM_PROVIDER = 'anthropic'
+    try {
+      const parsed = parseArgv(['run', '--repo', 'owner/repo'])
+      expect(parsed.config.llmProvider).toBe('anthropic')
+      expect(parsed.config.model).toBe('claude-3-5-sonnet-latest')
+    } finally {
+      if (previous === undefined) {
+        delete process.env.STYLECT_LLM_PROVIDER
+      } else {
+        process.env.STYLECT_LLM_PROVIDER = previous
       }
     }
   })
@@ -82,17 +143,40 @@ describe('parseArgv', () => {
     }
   })
 
+  it('rejects invalid STYLECT_LLM_PROVIDER values', () => {
+    const previous = process.env.STYLECT_LLM_PROVIDER
+    process.env.STYLECT_LLM_PROVIDER = 'bedrock'
+    try {
+      expect(() => parseArgv(['run', '--repo', 'owner/repo'])).toThrow(
+        /expected anthropic, cursor, or openai/,
+      )
+    } finally {
+      if (previous === undefined) {
+        delete process.env.STYLECT_LLM_PROVIDER
+      } else {
+        process.env.STYLECT_LLM_PROVIDER = previous
+      }
+    }
+  })
+
   it('allows help/version even when STYLECT_OUTPUT_LANG is invalid', () => {
-    const previous = process.env.STYLECT_OUTPUT_LANG
+    const previousOutputLang = process.env.STYLECT_OUTPUT_LANG
+    const previousProvider = process.env.STYLECT_LLM_PROVIDER
     process.env.STYLECT_OUTPUT_LANG = 'fr'
+    process.env.STYLECT_LLM_PROVIDER = 'bedrock'
     try {
       expect(parseArgv(['--version']).command).toBe('version')
       expect(parseArgv(['run', '--help']).command).toBe('help')
     } finally {
-      if (previous === undefined) {
+      if (previousOutputLang === undefined) {
         delete process.env.STYLECT_OUTPUT_LANG
       } else {
-        process.env.STYLECT_OUTPUT_LANG = previous
+        process.env.STYLECT_OUTPUT_LANG = previousOutputLang
+      }
+      if (previousProvider === undefined) {
+        delete process.env.STYLECT_LLM_PROVIDER
+      } else {
+        process.env.STYLECT_LLM_PROVIDER = previousProvider
       }
     }
   })

@@ -37,6 +37,7 @@ export function formatPlan(plan: PipelinePlan): string {
     plan.config.author ? `author: ${plan.config.author}` : 'author: (required in Phase 1)',
     `max commits: ${plan.config.maxCommits}`,
     `samples per group: ${plan.config.samplesPerGroup}`,
+    `llm provider: ${plan.config.llmProvider}`,
     `model: ${plan.config.model}`,
     `output language: ${plan.config.outputLanguage}`,
     `skip LLM: ${plan.config.skipLlm}`,

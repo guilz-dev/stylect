@@ -3,9 +3,10 @@ import { join } from 'node:path'
 import type { StylectConfig } from '../config.js'
 import {
   articlesPath,
+  buildLlmCacheMeta,
   cacheFileExists,
   extractionsPath,
-  isOutputLanguageCacheCompatible,
+  isLlmCacheCompatible,
   llmMetaPath,
   loadArticles,
   loadLlmMeta,
@@ -132,13 +133,10 @@ export async function compileWiki(
   const repoCacheDir = join(config.cacheDir, opts.slug)
   const cachePath = articlesPath(repoCacheDir)
   const extractionsCachePath = extractionsPath(repoCacheDir)
-  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
-    loadLlmMeta(llmMetaPath(repoCacheDir)),
-    config.outputLanguage,
-  )
+  const llmCacheCompatible = isLlmCacheCompatible(loadLlmMeta(llmMetaPath(repoCacheDir)), config)
 
   if (
-    outputLanguageCompatible &&
+    llmCacheCompatible &&
     shouldUseLlmCache(config.fresh, cacheFileExists(cachePath), opts.newCommitCount) &&
     cacheFileExists(extractionsCachePath)
   ) {
@@ -149,10 +147,7 @@ export async function compileWiki(
     cacheFileExists(cachePath) && opts.newCommitCount > 0 ? loadArticles(cachePath) : []
   const deltaExtractions = opts.deltaExtractions ?? []
   const incremental =
-    !config.fresh &&
-    opts.newCommitCount > 0 &&
-    existingArticles.length > 0 &&
-    outputLanguageCompatible
+    !config.fresh && opts.newCommitCount > 0 && existingArticles.length > 0 && llmCacheCompatible
   const { byDimension, byLanguage, repos } = groupObservations(extractions)
   const validSlugs = validCompileSlugs(byDimension, byLanguage)
   const affectedSlugs = incremental ? affectedCompileSlugs(deltaExtractions) : undefined
@@ -265,7 +260,7 @@ export async function compileWiki(
   if (combined.length > 0) {
     const fixed = fixWikilinks(combined)
     saveArticles(cachePath, fixed)
-    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: config.outputLanguage })
+    saveLlmMeta(llmMetaPath(repoCacheDir), buildLlmCacheMeta(config))
     return { articles: fixed, fromCache: false, failedSlugs }
   }
 

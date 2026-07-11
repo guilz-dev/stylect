@@ -3,9 +3,16 @@ import { join } from 'node:path'
 
 export type FetchSource = 'auto' | 'local' | 'github'
 export type OutputLanguage = 'en' | 'ja'
+export type LlmProvider = 'anthropic' | 'cursor' | 'openai'
 
-export const DEFAULT_LLM_MODEL = 'composer-2.5'
+export const DEFAULT_LLM_PROVIDER: LlmProvider = 'cursor'
 export const DEFAULT_OUTPUT_LANGUAGE: OutputLanguage = 'en'
+
+const DEFAULT_MODELS: Record<LlmProvider, string> = {
+  anthropic: 'claude-3-5-sonnet-latest',
+  cursor: 'composer-2.5',
+  openai: 'gpt-4.1-mini',
+}
 
 export type StylectConfig = {
   author?: string
@@ -26,6 +33,8 @@ export type StylectConfig = {
   writeRules: boolean
   lintFooter: boolean
   githubToken?: string
+  llmProvider: LlmProvider
+  llmApiKey?: string
   cursorApiKey?: string
   model: string
   outputLanguage: OutputLanguage
@@ -36,11 +45,37 @@ export type StylectConfig = {
 export const DEFAULT_MAX_COMMITS = 2000
 export const DEFAULT_SAMPLES_PER_GROUP = 20
 
+export function defaultModelForProvider(provider: LlmProvider): string {
+  return DEFAULT_MODELS[provider]
+}
+
+export function parseLlmProvider(value: string, source: string): LlmProvider {
+  if (value === 'anthropic' || value === 'cursor' || value === 'openai') {
+    return value
+  }
+  throw new Error(`Invalid ${source} value: ${value} (expected anthropic, cursor, or openai)`)
+}
+
 export function parseOutputLanguage(value: string, source: string): OutputLanguage {
   if (value === 'en' || value === 'ja') {
     return value
   }
   throw new Error(`Invalid ${source} value: ${value} (expected en or ja)`)
+}
+
+function resolveLlmProviderFromEnv(strict: boolean): LlmProvider {
+  const value = process.env.STYLECT_LLM_PROVIDER?.trim()
+  if (!value) {
+    return DEFAULT_LLM_PROVIDER
+  }
+  try {
+    return parseLlmProvider(value, 'STYLECT_LLM_PROVIDER')
+  } catch (error) {
+    if (!strict) {
+      return DEFAULT_LLM_PROVIDER
+    }
+    throw error
+  }
 }
 
 function resolveOutputLanguageFromEnv(strict: boolean): OutputLanguage {
@@ -64,7 +99,9 @@ export function defaultConfig(
 ): StylectConfig {
   const home = homedir()
   const strictEnv = options.strictEnv ?? true
-  return {
+  const envLlmProvider = resolveLlmProviderFromEnv(strictEnv)
+  const llmProvider = overrides.llmProvider ?? envLlmProvider
+  const base: StylectConfig = {
     repos: [],
     maxCommits: DEFAULT_MAX_COMMITS,
     samplesPerGroup: DEFAULT_SAMPLES_PER_GROUP,
@@ -78,10 +115,17 @@ export function defaultConfig(
     writeWiki: true,
     writeRules: true,
     lintFooter: true,
-    model: DEFAULT_LLM_MODEL,
+    llmProvider,
+    model: defaultModelForProvider(llmProvider),
     outputLanguage: resolveOutputLanguageFromEnv(strictEnv),
     repoPaths: [],
     source: 'auto',
+  }
+
+  return {
+    ...base,
     ...overrides,
+    llmProvider,
+    model: overrides.model ?? base.model,
   }
 }

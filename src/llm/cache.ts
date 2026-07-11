@@ -1,6 +1,11 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import type { OutputLanguage } from '../config.js'
+import {
+  defaultModelForProvider,
+  type LlmProvider,
+  type OutputLanguage,
+  type StylectConfig,
+} from '../config.js'
 import { ensureParentDir } from '../fetch/cache.js'
 import type { WikiArticle } from '../models/article.js'
 import type { ClusterExtraction } from '../models/extraction.js'
@@ -33,6 +38,18 @@ export function llmMetaPath(cacheDir: string): string {
 
 export type LlmCacheMeta = {
   output_language: OutputLanguage
+  llm_provider?: LlmProvider
+  model?: string
+}
+
+export function buildLlmCacheMeta(
+  config: Pick<StylectConfig, 'outputLanguage' | 'llmProvider' | 'model'>,
+): LlmCacheMeta {
+  return {
+    output_language: config.outputLanguage,
+    llm_provider: config.llmProvider,
+    model: config.model,
+  }
 }
 
 export function shouldUseLlmCache(
@@ -113,13 +130,19 @@ export function saveLlmMeta(path: string, meta: LlmCacheMeta): void {
   writeFileSync(path, `${JSON.stringify(meta, null, 2)}\n`, 'utf8')
 }
 
-export function isOutputLanguageCacheCompatible(
+export function isLlmCacheCompatible(
   meta: LlmCacheMeta | undefined,
-  outputLanguage: OutputLanguage,
+  config: Pick<StylectConfig, 'outputLanguage' | 'llmProvider' | 'model'>,
 ): boolean {
-  // Old caches (before llm-meta.json) are treated as English outputs.
-  const cached = meta?.output_language ?? 'en'
-  return cached === outputLanguage
+  // Old caches (before llm-meta.json) are treated as English + cursor defaults.
+  const cachedLanguage = meta?.output_language ?? 'en'
+  const cachedProvider = meta?.llm_provider ?? 'cursor'
+  const cachedModel = meta?.model ?? defaultModelForProvider(cachedProvider)
+  return (
+    cachedLanguage === config.outputLanguage &&
+    cachedProvider === config.llmProvider &&
+    cachedModel === config.model
+  )
 }
 
 export function cacheFileExists(path: string): boolean {

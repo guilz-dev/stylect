@@ -3,10 +3,11 @@ import { join } from 'node:path'
 
 import type { StylectConfig } from '../config.js'
 import type { WikiArticle } from '../models/article.js'
+import type { LintReport, LintSeverity } from '../models/lint-report.js'
 import { cleanupStaleWikiFiles } from './cleanup.js'
 import { renderYamlFrontmatter } from './frontmatter.js'
 import type { MergedArtifacts } from './types.js'
-import { normalizeWikiWikilinks } from './wikilinks.js'
+import { articleLinkMap, normalizeWikiWikilinks, wikiLinkPath } from './wikilinks.js'
 
 export function writeWiki(
   merged: MergedArtifacts,
@@ -37,8 +38,13 @@ export function writeWiki(
     renderGenerationConfig(config),
     'utf8',
   )
+  writeFileSync(
+    join(wikiDir, '_meta', 'lint.md'),
+    renderLintReport(merged.lint, merged.articles),
+    'utf8',
+  )
   writeFileSync(join(wikiDir, '_meta', 'generation-log.md'), renderGenerationLog(merged), 'utf8')
-  fileCount += 3
+  fileCount += 4
 
   return { dir: wikiDir, fileCount }
 }
@@ -101,6 +107,7 @@ function renderGenerationConfig(config: StylectConfig): string {
     `- repos: ${config.repos.join(', ')}`,
     `- maxCommits: ${config.maxCommits}`,
     `- samplesPerGroup: ${config.samplesPerGroup}`,
+    `- llmProvider: ${config.llmProvider}`,
     `- model: ${config.model}`,
     `- output: ${config.outputDir}`,
     `- rulesDir: ${config.rulesDir}`,
@@ -110,6 +117,7 @@ function renderGenerationConfig(config: StylectConfig): string {
 }
 
 function renderGenerationLog(merged: MergedArtifacts): string {
+  const counts = lintSeverityCounts(merged.lint)
   const lines = [
     '# Generation log',
     '',
@@ -138,9 +146,82 @@ function renderGenerationLog(merged: MergedArtifacts): string {
     '',
     '## Lint',
     '',
-    `- passed: ${merged.lint.passed}`,
+    `- passed: ${merged.lint.passed} (${merged.lint.passed ? 'no error-severity issues' : 'contains error-severity issues'})`,
     `- issues: ${merged.lint.issues.length}`,
+    `- errors: ${counts.error}`,
+    `- warnings: ${counts.warning}`,
+    `- info: ${counts.info}`,
+    '- details: [Lint report](./lint.md)',
     '',
   )
   return lines.join('\n')
+}
+
+function renderLintReport(lint: LintReport, articles: WikiArticle[]): string {
+  const counts = lintSeverityCounts(lint)
+  const lines = [
+    '# Lint report',
+    '',
+    `- passed: ${lint.passed}`,
+    '- note: `passed: true` means there are no `error` severity issues; `warning` and `info` issues may still remain.',
+    `- total issues: ${lint.issues.length}`,
+    `- errors: ${counts.error}`,
+    `- warnings: ${counts.warning}`,
+    `- info: ${counts.info}`,
+    '',
+  ]
+
+  if (lint.issues.length === 0) {
+    lines.push('No lint issues.', '')
+    return lines.join('\n')
+  }
+
+  const articlesBySlug = articleLinkMap(articles)
+  for (const severity of ['error', 'warning', 'info'] as const) {
+    const issues = lint.issues.filter((issue) => issue.severity === severity)
+    if (issues.length === 0) {
+      continue
+    }
+
+    lines.push(`## ${severity[0]?.toUpperCase()}${severity.slice(1)}s`, '')
+
+    for (const issue of issues) {
+      lines.push(`### ${lintIssueLabel(issue.article, articlesBySlug)}`)
+      lines.push(`Issue: ${issue.message}`)
+      if (issue.suggestion) {
+        lines.push(`Suggestion: ${issue.suggestion}`)
+      }
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function lintSeverityCounts(lint: LintReport): Record<LintSeverity, number> {
+  const counts: Record<LintSeverity, number> = {
+    error: 0,
+    warning: 0,
+    info: 0,
+  }
+
+  for (const issue of lint.issues) {
+    counts[issue.severity] += 1
+  }
+
+  return counts
+}
+
+function lintIssueLabel(articleSlug: string, articlesBySlug: Map<string, WikiArticle>): string {
+  if (articleSlug === '_meta') {
+    return '`_meta`'
+  }
+
+  const article = articlesBySlug.get(articleSlug)
+  if (!article) {
+    return `\`${articleSlug}\``
+  }
+
+  const path = wikiLinkPath(article.slug, articlesBySlug)
+  return `[${article.title}](../${path}.md)`
 }

@@ -5,7 +5,7 @@ import {
   articlesPath,
   cacheFileExists,
   extractionsPath,
-  isOutputLanguageCacheCompatible,
+  isLlmCacheCompatible,
   lintPath,
   llmMetaPath,
   loadLlmMeta,
@@ -37,10 +37,7 @@ export function resolveLlmStageNeeds(
   }
 
   const repoCacheDir = join(config.cacheDir, slug)
-  const outputLanguageCompatible = isOutputLanguageCacheCompatible(
-    loadLlmMeta(llmMetaPath(repoCacheDir)),
-    config.outputLanguage,
-  )
+  const llmCacheCompatible = isLlmCacheCompatible(loadLlmMeta(llmMetaPath(repoCacheDir)), config)
 
   if (config.fresh) {
     return { extract: true, compile: true, lint: true }
@@ -49,9 +46,8 @@ export function resolveLlmStageNeeds(
   if (newCommitCount > 0 && deltaClusterCount === 0) {
     return {
       extract: !stageUsesLlmCache(config, extractionsPath(repoCacheDir), 0),
-      compile:
-        !stageUsesLlmCache(config, articlesPath(repoCacheDir), 0) || !outputLanguageCompatible,
-      lint: !stageUsesLlmCache(config, lintPath(repoCacheDir), 0) || !outputLanguageCompatible,
+      compile: !stageUsesLlmCache(config, articlesPath(repoCacheDir), 0) || !llmCacheCompatible,
+      lint: !stageUsesLlmCache(config, lintPath(repoCacheDir), 0) || !llmCacheCompatible,
     }
   }
 
@@ -61,10 +57,9 @@ export function resolveLlmStageNeeds(
 
   const extract = !stageUsesLlmCache(config, extractionsPath(repoCacheDir), newCommitCount)
   const compile =
-    !stageUsesLlmCache(config, articlesPath(repoCacheDir), newCommitCount) ||
-    !outputLanguageCompatible
+    !stageUsesLlmCache(config, articlesPath(repoCacheDir), newCommitCount) || !llmCacheCompatible
   const lint =
-    !stageUsesLlmCache(config, lintPath(repoCacheDir), newCommitCount) || !outputLanguageCompatible
+    !stageUsesLlmCache(config, lintPath(repoCacheDir), newCommitCount) || !llmCacheCompatible
 
   return { extract, compile, lint }
 }
@@ -79,7 +74,7 @@ export function repoNeedsLlm(
   return needs.extract || needs.compile || needs.lint
 }
 
-export function needsCursorApiKey(
+export function needsLlmApiKey(
   config: StylectConfig,
   opts: { slug: string; newCommitCount: number; deltaClusterCount: number },
 ): boolean {
@@ -88,3 +83,5 @@ export function needsCursorApiKey(
   }
   return repoNeedsLlm(config, opts.slug, opts.newCommitCount, opts.deltaClusterCount)
 }
+
+export const needsCursorApiKey = needsLlmApiKey

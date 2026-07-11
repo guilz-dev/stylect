@@ -56,7 +56,7 @@ describe('compileWiki', () => {
     const result = await compileWiki(extractions, config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'unused', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'unused', model: 'composer-2.5' },
       deltaExtractions: [],
     })
 
