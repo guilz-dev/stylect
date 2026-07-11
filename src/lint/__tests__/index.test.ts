@@ -43,7 +43,7 @@ describe('lintWiki', () => {
     const result = await lintWiki([article], config, {
       slug,
       newCommitCount: 0,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.fromCache).toBe(false)
@@ -57,7 +57,7 @@ describe('lintWiki', () => {
     const result = await lintWiki([], config, {
       slug: 'owner__repo',
       newCommitCount: 0,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.report.passed).toBe(true)
@@ -79,7 +79,7 @@ describe('lintWiki', () => {
     const result = await lintWiki([article], config, {
       slug,
       newCommitCount: 0,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.fromCache).toBe(true)
@@ -99,7 +99,7 @@ describe('lintWiki', () => {
     await lintWiki([longArticle], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     const prompt = String(vi.mocked(completeJson).mock.calls[0]?.[2] ?? '')
@@ -120,7 +120,7 @@ describe('lintWiki', () => {
     const result = await lintWiki([article], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.report.passed).toBe(true)
@@ -138,7 +138,7 @@ describe('lintWiki', () => {
     const result = await lintWiki([article], config, {
       slug,
       newCommitCount: 1,
-      llm: { apiKey: 'key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'key', model: 'composer-2.5' },
     })
 
     expect(result.report.passed).toBe(false)

@@ -63,6 +63,7 @@ describe('cleanupAllOutputArtifacts', () => {
     writeFileSync(join(wikiDir, 'index.md'), '# index\n')
     mkdirSync(join(wikiDir, '_meta'), { recursive: true })
     writeFileSync(join(wikiDir, '_meta', 'sources.md'), '# sources\n')
+    writeFileSync(join(wikiDir, '_meta', 'lint.md'), '# lint\n')
     writeFileSync(join(rulesDir, 'stylect-patterns.mdc'), '---\n---\n')
 
     cleanupAllOutputArtifacts({
@@ -75,6 +76,7 @@ describe('cleanupAllOutputArtifacts', () => {
     expect(existsSync(join(wikiDir, 'patterns.md'))).toBe(false)
     expect(existsSync(join(wikiDir, 'index.md'))).toBe(false)
     expect(existsSync(join(wikiDir, '_meta', 'sources.md'))).toBe(false)
+    expect(existsSync(join(wikiDir, '_meta', 'lint.md'))).toBe(false)
     expect(existsSync(join(rulesDir, 'stylect-patterns.mdc'))).toBe(false)
   })
 })

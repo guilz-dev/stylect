@@ -1,4 +1,10 @@
-import { defaultConfig, parseOutputLanguage, type StylectConfig } from './config.js'
+import {
+  defaultConfig,
+  defaultModelForProvider,
+  parseLlmProvider,
+  parseOutputLanguage,
+  type StylectConfig,
+} from './config.js'
 
 export type ParsedCli = {
   command: 'fetch' | 'help' | 'run' | 'sample' | 'write' | 'version'
@@ -16,6 +22,8 @@ export function parseArgv(argv: string[]): ParsedCli {
     rest.includes('--help') ||
     rest.includes('-h')
   const config = defaultConfig({}, { strictEnv: !lenientEnv })
+  let modelFlagIndex = -1
+  let providerFlagIndex = -1
 
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i]
@@ -72,6 +80,16 @@ export function parseArgv(argv: string[]): ParsedCli {
         break
       case '--model':
         config.model = requireValue(rest, i, token)
+        modelFlagIndex = i
+        i += 1
+        break
+      case '--llm-provider':
+        config.llmProvider = parseLlmProvider(requireValue(rest, i, token), '--llm-provider')
+        providerFlagIndex = i
+        i += 1
+        break
+      case '--llm-api-key':
+        config.llmApiKey = requireValue(rest, i, token)
         i += 1
         break
       case '--output-lang':
@@ -105,6 +123,10 @@ export function parseArgv(argv: string[]): ParsedCli {
       default:
         throw new Error(`Unknown argument: ${token}`)
     }
+  }
+
+  if (providerFlagIndex >= 0 && (modelFlagIndex < 0 || modelFlagIndex < providerFlagIndex)) {
+    config.model = defaultModelForProvider(config.llmProvider)
   }
 
   if (command === 'version' || command === '-v' || command === '--version') {

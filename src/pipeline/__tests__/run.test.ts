@@ -13,7 +13,10 @@ vi.mock('../../sample/index.js', () => ({ sampleCommits: vi.fn() }))
 vi.mock('../../extract/index.js', () => ({ extractClusters: vi.fn() }))
 vi.mock('../../compile/index.js', () => ({ compileWiki: vi.fn() }))
 vi.mock('../../lint/index.js', () => ({ lintWiki: vi.fn() }))
-vi.mock('../../llm/token.js', () => ({ resolveCursorApiKey: vi.fn() }))
+vi.mock('../../llm/token.js', () => ({
+  resolveCursorApiKey: vi.fn(),
+  resolveLlmApiKey: vi.fn(),
+}))
 vi.mock('../../writer/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../writer/index.js')>()
   return {
@@ -29,7 +32,7 @@ import { compileWiki } from '../../compile/index.js'
 import { extractClusters } from '../../extract/index.js'
 import { fetch } from '../../fetch/index.js'
 import { lintWiki } from '../../lint/index.js'
-import { resolveCursorApiKey } from '../../llm/token.js'
+import { resolveLlmApiKey } from '../../llm/token.js'
 import { sampleCommits } from '../../sample/index.js'
 import { writeArtifacts } from '../../writer/index.js'
 import { outputArtifactsExist } from '../up-to-date.js'
@@ -90,7 +93,7 @@ beforeEach(() => {
     report: { passed: true, issues: [] },
     fromCache: false,
   })
-  vi.mocked(resolveCursorApiKey).mockReturnValue('test-key')
+  vi.mocked(resolveLlmApiKey).mockReturnValue('test-key')
   vi.mocked(writeArtifacts).mockReturnValue({
     wikiDir: '/tmp/wiki',
     rulesDir: '/tmp/rules',
@@ -102,7 +105,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks()
+  delete process.env.ANTHROPIC_API_KEY
   delete process.env.CURSOR_API_KEY
+  delete process.env.OPENAI_API_KEY
 })
 
 describe('runPipeline', () => {
@@ -121,8 +126,8 @@ describe('runPipeline', () => {
     expect(writeArtifacts).not.toHaveBeenCalled()
   })
 
-  it('soft-stops after sample when CURSOR_API_KEY is missing and LLM is needed', async () => {
-    vi.mocked(resolveCursorApiKey).mockReturnValue(undefined)
+  it('soft-stops after sample when the provider API key is missing and LLM is needed', async () => {
+    vi.mocked(resolveLlmApiKey).mockReturnValue(undefined)
 
     const config = defaultConfig({
       author: 'dev',
@@ -141,7 +146,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/repo'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
     })
 
     const result = await runPipeline(config)
@@ -161,7 +166,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/repo'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
     })
 
     const result = await runPipeline(config)
@@ -182,7 +187,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/repo'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
     })
 
     const result = await runPipeline(config)
@@ -222,7 +227,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/a', 'owner/b'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
     })
 
     const result = await runPipeline(config)
@@ -243,7 +248,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/repo'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
       outputDir: mkdtempSync(join(tmpdir(), 'stylect-run-empty-wiki-')),
       rulesDir: mkdtempSync(join(tmpdir(), 'stylect-run-empty-rules-')),
     })
@@ -288,7 +293,7 @@ describe('runPipeline', () => {
     const config = defaultConfig({
       author: 'dev',
       repos: ['owner/repo'],
-      cursorApiKey: 'test-key',
+      llmApiKey: 'test-key',
     })
 
     const result = await runPipeline(config)

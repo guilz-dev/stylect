@@ -14,9 +14,11 @@ import {
 } from '../../util/llm-requirements.js'
 import {
   articlesPath,
+  buildLlmCacheMeta,
   extractionsPath,
   invalidateAllLlmCache,
   invalidateCompileCache,
+  isLlmCacheCompatible,
   lintPath,
   llmMetaPath,
   saveArticles,
@@ -91,7 +93,7 @@ describe('compile cache guard', () => {
     const result = await compileWiki([], config, {
       slug,
       newCommitCount: 0,
-      llm: { apiKey: 'test-key', model: 'composer-2.5' },
+      llm: { provider: 'cursor', apiKey: 'test-key', model: 'composer-2.5' },
     })
 
     expect(result.fromCache).toBe(false)
@@ -182,7 +184,14 @@ describe('needsCursorApiKey', () => {
     writeFileSync(extractionsPath(repoCacheDir), '[]\n')
     writeFileSync(articlesPath(repoCacheDir), '[]\n')
     writeFileSync(lintPath(repoCacheDir), '{"issues":[],"passed":true}\n')
-    saveLlmMeta(llmMetaPath(repoCacheDir), { output_language: 'en' })
+    saveLlmMeta(
+      llmMetaPath(repoCacheDir),
+      buildLlmCacheMeta({
+        outputLanguage: 'en',
+        llmProvider: 'cursor',
+        model: 'composer-2.5',
+      }),
+    )
 
     const config = defaultConfig({
       cacheDir: dir,
@@ -193,6 +202,57 @@ describe('needsCursorApiKey', () => {
     const needs = resolveLlmStageNeeds(config, slug, 0, 0)
     expect(needs).toEqual({ extract: false, compile: true, lint: true })
     expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(true)
+  })
+
+  it('requires compile/lint when llm provider changes', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stylect-llm-provider-switch-'))
+    const slug = 'owner__repo'
+    const repoCacheDir = join(dir, slug)
+    ensureParentDir(extractionsPath(repoCacheDir))
+    writeFileSync(extractionsPath(repoCacheDir), '[]\n')
+    writeFileSync(articlesPath(repoCacheDir), '[]\n')
+    writeFileSync(lintPath(repoCacheDir), '{"issues":[],"passed":true}\n')
+    saveLlmMeta(
+      llmMetaPath(repoCacheDir),
+      buildLlmCacheMeta({
+        outputLanguage: 'en',
+        llmProvider: 'cursor',
+        model: 'composer-2.5',
+      }),
+    )
+
+    const config = defaultConfig({
+      cacheDir: dir,
+      repos: ['owner/repo'],
+      llmProvider: 'openai',
+    })
+
+    const needs = resolveLlmStageNeeds(config, slug, 0, 0)
+    expect(needs).toEqual({ extract: false, compile: true, lint: true })
+    expect(needsCursorApiKey(config, { slug, newCommitCount: 0, deltaClusterCount: 0 })).toBe(true)
+  })
+
+  it('treats legacy llm-meta without provider as cursor-compatible', () => {
+    expect(
+      isLlmCacheCompatible(
+        { output_language: 'en' },
+        {
+          outputLanguage: 'en',
+          llmProvider: 'cursor',
+          model: 'composer-2.5',
+        },
+      ),
+    ).toBe(true)
+    expect(
+      isLlmCacheCompatible(
+        { output_language: 'en' },
+        {
+          outputLanguage: 'en',
+          llmProvider: 'openai',
+          model: 'gpt-4.1-mini',
+        },
+      ),
+    ).toBe(false)
   })
 
   it('returns true when delta clusters need LLM work', () => {

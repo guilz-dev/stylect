@@ -10,7 +10,7 @@ alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
 
 ## Status
 
-Early development (`1.3.1`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, and output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`).
+Early development (`1.4.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`), and provider selection across Cursor, OpenAI, and Anthropic.
 
 ## Install
 
@@ -55,7 +55,31 @@ stylect run \
   -s 10 \
   --skip-llm
 
-# Full pipeline through write (requires CURSOR_API_KEY)
+# Full pipeline through write with OpenAI
+export OPENAI_API_KEY=...
+stylect run \
+  --author you \
+  --repo owner/repo \
+  --repo-path /path/to/local/clone \
+  --llm-provider openai \
+  --output-lang en \
+  -o ./wiki \
+  --rules-dir ./.cursor/rules \
+  -n 200 -s 5
+
+# Full pipeline through write with Anthropic
+export ANTHROPIC_API_KEY=...
+stylect run \
+  --author you \
+  --repo owner/repo \
+  --repo-path /path/to/local/clone \
+  --llm-provider anthropic \
+  --output-lang en \
+  -o ./wiki \
+  --rules-dir ./.cursor/rules \
+  -n 200 -s 5
+
+# Full pipeline through write with Cursor
 export CURSOR_API_KEY=...
 stylect run \
   --author you \
@@ -107,12 +131,29 @@ stylect run ... --output-lang ja
 export STYLECT_OUTPUT_LANG=ja
 ```
 
+Control LLM provider and credentials:
+
+```bash
+stylect run ... --llm-provider openai
+stylect run ... --llm-provider anthropic
+stylect run ... --llm-provider cursor
+stylect run ... --llm-provider openai --llm-api-key "$OPENAI_API_KEY"
+
+# or via env:
+export STYLECT_LLM_PROVIDER=anthropic
+export STYLECT_LLM_API_KEY=...
+```
+
 ## Auth
 
 | Variable         | Purpose                                              |
 |------------------|------------------------------------------------------|
 | `GITHUB_TOKEN`   | GitHub fetch fallback + repo languages API           |
-| `CURSOR_API_KEY` | Cursor SDK for extract/compile/lint (Phase 2)      |
+| `CURSOR_API_KEY` | Cursor SDK auth for extract/compile/lint             |
+| `OPENAI_API_KEY` | OpenAI API auth for extract/compile/lint             |
+| `ANTHROPIC_API_KEY` | Anthropic API auth for extract/compile/lint       |
+| `STYLECT_LLM_PROVIDER` | Default LLM provider (`cursor`, `openai`, `anthropic`) |
+| `STYLECT_LLM_API_KEY` | Generic fallback API key for the selected provider |
 | `STYLECT_OUTPUT_LANG` | Output language (`en` or `ja`, default: `en`) |
 
 `--author` is required for fetch runs. GitHub token is required for `--source github`, or for `--source auto` when no local clone is found (optional otherwise for languages API).

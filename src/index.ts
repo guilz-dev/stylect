@@ -1,5 +1,5 @@
-export type { StylectConfig } from './config.js'
-export { defaultConfig } from './config.js'
+export type { LlmProvider, StylectConfig } from './config.js'
+export { defaultConfig, defaultModelForProvider, parseLlmProvider } from './config.js'
 export { fetch } from './fetch/index.js'
 export type { FetchCommitsOptions, FetchCommitsResult, KnownLanguages } from './fetch/types.js'
 export { resolveGitHubToken } from './github/token.js'

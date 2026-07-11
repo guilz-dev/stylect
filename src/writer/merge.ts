@@ -44,7 +44,7 @@ function mergeLintReports(complete: RepoLlmResult[], slugWinners: Map<string, st
 
   for (const result of complete) {
     for (const issue of result.lint.issues) {
-      if (slugWinners.get(issue.article) === result.repo) {
+      if (issue.article === '_meta' || slugWinners.get(issue.article) === result.repo) {
         issues.push(issue)
       }
     }
