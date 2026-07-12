@@ -10,7 +10,7 @@ alongside [belay](https://github.com/guilz-dev/belay).
 
 ## Status
 
-Published on npm (`1.4.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`), and provider selection across Cursor, OpenAI, and Anthropic.
+Published on npm (`1.4.1`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`), and provider selection across Cursor, OpenAI, and Anthropic.
 
 ## Install
 
