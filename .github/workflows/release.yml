@@ -38,4 +38,5 @@ jobs:
         run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        # Provenance requires a public GitHub source repo; OIDC trusted publishing works without it.
+        run: npm publish --access public
