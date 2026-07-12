@@ -127,7 +127,7 @@ function parseNumstat(output: string): FileStats[] {
       continue
     }
     const [additionsRaw, deletionsRaw, ...filenameParts] = trimmed.split('\t')
-    const filename = filenameParts.join('\t')
+    const filename = normalizeNumstatFilename(filenameParts.join('\t'))
     if (!filename || isSensitivePath(filename)) {
       continue
     }
@@ -140,6 +140,21 @@ function parseNumstat(output: string): FileStats[] {
     })
   }
   return files
+}
+
+function normalizeNumstatFilename(filename: string): string {
+  if (!filename.includes('=>')) {
+    return filename
+  }
+
+  const braceMatch = filename.match(/^(.*)\{(.+) => (.+)\}(.*)$/)
+  if (braceMatch) {
+    const [, prefix = '', , renamed = '', suffix = ''] = braceMatch
+    return `${prefix}${renamed}${suffix}`
+  }
+
+  const renamed = filename.split(' => ')[1]
+  return renamed?.trim() || filename
 }
 
 type ParsedPatch = {

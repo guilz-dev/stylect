@@ -110,17 +110,18 @@ export async function runPipeline(config: StylectConfig): Promise<PipelineRunRes
   }
 
   let wroteArtifacts = false
+  const mergedCompleteArtifacts = mergeRepoArtifacts(repoResults)
   const pipelineUpToDate =
     !config.skipLlm &&
     repoResults.length > 0 &&
     repoResults.every((result) => result.status === 'complete' && result.upToDate) &&
-    outputArtifactsExist(config)
+    mergedCompleteArtifacts.articles.length > 0 &&
+    outputArtifactsExist(config, mergedCompleteArtifacts.articles)
 
   if (pipelineUpToDate) {
     process.stdout.write('stylect: up to date\n')
   } else if (shouldWrite(config, repoResults)) {
-    const merged = mergeRepoArtifacts(repoResults)
-    const writeResult = writeArtifacts(merged, config)
+    const writeResult = writeArtifacts(mergedCompleteArtifacts, config)
     logWriteSummary(writeResult)
     wroteArtifacts = true
   } else if (shouldCleanupEmptyOutput(config, repoResults)) {

@@ -36,6 +36,7 @@ export async function processRepo(repo: string, config: StylectConfig): Promise<
   const sampleResult = sampleCommits(fetchResult.allCommits, repoConfig, {
     slug,
     newCommitCount,
+    preferCache: false,
   })
 
   const deltaClusters = previousClusters

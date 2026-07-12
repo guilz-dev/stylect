@@ -57,5 +57,10 @@
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.23"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": ">=6.27.0"
+    }
   }
 }

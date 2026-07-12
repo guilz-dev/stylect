@@ -1,5 +1,10 @@
+import { existsSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { defaultConfig } from '../../config.js'
+import { loadSamples, saveSamples } from '../../fetch/cache.js'
 import type { RawCommit } from '../../models/commit.js'
 import { sampleGroup } from '../select.js'
 
@@ -69,6 +74,72 @@ describe('shouldUseSampleCache', () => {
     expect(shouldUseSampleCache(false, true, 0)).toBe(true)
     expect(shouldUseSampleCache(false, true, 3)).toBe(false)
     expect(shouldUseSampleCache(true, true, 0)).toBe(false)
+  })
+})
+
+describe('sampleCommits', () => {
+  it('can bypass cache reuse when the caller wants to resample', async () => {
+    const { sampleCommits } = await import('../index.js')
+    const commits = Array.from({ length: 30 }, (_, index) =>
+      makeCommit(`sha${String(index).padStart(3, '0')}`, index, index),
+    )
+    const cacheDir = mkdtempSync(join(tmpdir(), 'stylect-sample-cache-'))
+    saveSamples(join(cacheDir, 'u__r', 'samples.json'), [
+      {
+        repo: 'u/r',
+        language: 'Python',
+        totalInGroup: 30,
+        commits: commits.slice(0, 20),
+      },
+    ])
+    const config = defaultConfig({
+      repos: ['u/r'],
+      author: 'u',
+      samplesPerGroup: 5,
+      cacheDir,
+      fresh: false,
+    })
+
+    const result = sampleCommits(commits, config, {
+      slug: 'u__r',
+      newCommitCount: 0,
+      preferCache: false,
+    })
+
+    expect(result.fromCache).toBe(false)
+    expect(result.clusters[0]?.commits).toHaveLength(5)
+  })
+
+  it('overwrites stale sample cache with an empty result', async () => {
+    const { sampleCommits } = await import('../index.js')
+    const cacheDir = mkdtempSync(join(tmpdir(), 'stylect-sample-empty-'))
+    const samplesPath = join(cacheDir, 'u__r', 'samples.json')
+    saveSamples(samplesPath, [
+      {
+        repo: 'u/r',
+        language: 'Python',
+        totalInGroup: 1,
+        commits: [makeCommit('sha001')],
+      },
+    ])
+    const config = defaultConfig({
+      repos: ['u/r'],
+      author: 'u',
+      samplesPerGroup: 5,
+      cacheDir,
+      fresh: false,
+    })
+
+    const result = sampleCommits([], config, {
+      slug: 'u__r',
+      newCommitCount: 1,
+      preferCache: false,
+    })
+
+    expect(result.fromCache).toBe(false)
+    expect(result.clusters).toEqual([])
+    expect(existsSync(samplesPath)).toBe(true)
+    expect(loadSamples(samplesPath)).toEqual([])
   })
 })
 

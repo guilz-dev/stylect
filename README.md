@@ -6,11 +6,11 @@ Stylect mines git history to extract personal or team coding conventions, then
 writes agent-ready rules (Cursor `.cursor/rules/`, Orbit personas, wiki).
 
 Part of the [Planetz](https://github.com/guilz-dev/planetz) agent tooling family
-alongside [agent-belay](https://github.com/guilz-dev/agent-belay).
+alongside [belay](https://github.com/guilz-dev/belay).
 
 ## Status
 
-Early development (`1.4.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`), and provider selection across Cursor, OpenAI, and Anthropic.
+Published on npm (`1.4.0`). Full pipeline through **write** is implemented, including incremental LLM, cache-only `stylect write`, debug `stylect fetch` / `sample`, output language control (`--output-lang`, `STYLECT_OUTPUT_LANG`), and provider selection across Cursor, OpenAI, and Anthropic.
 
 ## Install
 
@@ -37,61 +37,41 @@ node dist/cli.js run --plan --author you --repo owner/name
 ## Quick start
 
 ```bash
-# Plan only (no fetch)
-stylect run \
-  --author you \
-  --repo owner/repo \
-  --repo-path /path/to/local/clone \
-  --since 2024-01-01 \
-  --plan
+# Set these once per shell session
+export STYLECT_AUTHOR=you
+export STYLECT_REPO=owner/repo
 
-# Phase 1: fetch + sample (local git, no LLM token required)
-stylect run \
-  --author you \
-  --repo owner/repo \
-  --repo-path /path/to/local/clone \
-  --since 2024-01-01 \
-  -n 500 \
-  -s 10 \
-  --skip-llm
+# Shortest run (from the target local clone directory)
+cd /path/to/local/clone
+stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO"
 
-# Full pipeline through write with OpenAI
-export OPENAI_API_KEY=...
-stylect run \
-  --author you \
-  --repo owner/repo \
-  --repo-path /path/to/local/clone \
-  --llm-provider openai \
-  --output-lang en \
-  -o ./wiki \
-  --rules-dir ./.cursor/rules \
-  -n 200 -s 5
+# Plan only
+stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO" --plan
 
-# Full pipeline through write with Anthropic
-export ANTHROPIC_API_KEY=...
-stylect run \
-  --author you \
-  --repo owner/repo \
-  --repo-path /path/to/local/clone \
-  --llm-provider anthropic \
-  --output-lang en \
-  -o ./wiki \
-  --rules-dir ./.cursor/rules \
-  -n 200 -s 5
+# Fetch + sample only (skip LLM)
+stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO" --skip-llm
 
-# Full pipeline through write with Cursor
-export CURSOR_API_KEY=...
-stylect run \
-  --author you \
-  --repo owner/repo \
-  --repo-path /path/to/local/clone \
-  --output-lang en \
-  -o ./wiki \
-  --rules-dir ./.cursor/rules \
-  -n 200 -s 5
+# Override output paths / language only when needed
+stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO" \
+  -o ./wiki --rules-dir ./.cursor/rules --output-lang ja
 ```
 
-Cache is written to `~/.stylect/<owner__name>/` (`commits.jsonl`, `samples.json`, `meta.json`, and after LLM stages: `extractions.json`, `articles.json`, `lint.json`).
+Switch providers with one-liners:
+
+```bash
+OPENAI_API_KEY=... STYLECT_LLM_PROVIDER=openai \
+  stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO"
+
+ANTHROPIC_API_KEY=... STYLECT_LLM_PROVIDER=anthropic \
+  stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO"
+
+CURSOR_API_KEY=... STYLECT_LLM_PROVIDER=cursor \
+  stylect run -a "$STYLECT_AUTHOR" -r "$STYLECT_REPO"
+```
+
+If you are not running from the repository clone directory, add `--repo-path /path/to/local/clone` (or set `REPO_SEARCH_PATHS`).
+
+Cache is written to `~/.stylect/<owner__name>/` (`commits.jsonl`, `samples.json`, `meta.json`, and after LLM stages: `extractions.json`, `articles.json`, `lint.json`, `llm-meta.json`).
 
 ## Pipeline
 
@@ -101,7 +81,7 @@ fetch → sample → extract → compile → lint → write
 
 | Stage   | LLM | Description                                      |
 |---------|-----|--------------------------------------------------|
-| fetch   | no  | Commits + diffs via local git (GitHub API later) |
+| fetch   | no  | Commits + diffs via local git or GitHub API (`--source`) |
 | sample  | no  | Cluster by repo × language, pick representatives |
 | extract | yes | Style observations per cluster (Phase 2)         |
 | compile | yes | Wiki articles / rules (Phase 2)                  |
@@ -122,6 +102,25 @@ Debug individual pipeline stages:
 stylect fetch -r owner/repo -a you --repo-path /path/to/local/clone
 stylect sample -r owner/repo
 ```
+
+Select fetch source mode (default: `auto`):
+
+```bash
+# Prefer local clone, fallback to GitHub API
+stylect run ... --source auto
+
+# Use local clone only (error if not found)
+stylect run ... --source local
+
+# Always use GitHub API
+stylect run ... --source github
+```
+
+Local clone discovery order for `--source auto` / `local`:
+
+1. Per-repo `--repo-path` (repeatable, paired with `--repo`)
+2. Current working directory (when git remote matches `owner/repo`)
+3. `REPO_SEARCH_PATHS` (colon-separated base directories; each `<base>/<repo-name>`)
 
 Control wiki/rules language (default: English):
 
@@ -144,6 +143,20 @@ export STYLECT_LLM_PROVIDER=anthropic
 export STYLECT_LLM_API_KEY=...
 ```
 
+Provider defaults:
+
+| Provider | Default model |
+|----------|---------------|
+| `cursor` | `composer-2.5` |
+| `openai` | `gpt-4.1-mini` |
+| `anthropic` | `claude-3-5-sonnet-latest` |
+
+LLM API key resolution order:
+
+1. `--llm-api-key`
+2. Provider env var (`CURSOR_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`)
+3. `STYLECT_LLM_API_KEY`
+
 ## Auth
 
 | Variable         | Purpose                                              |
@@ -155,8 +168,20 @@ export STYLECT_LLM_API_KEY=...
 | `STYLECT_LLM_PROVIDER` | Default LLM provider (`cursor`, `openai`, `anthropic`) |
 | `STYLECT_LLM_API_KEY` | Generic fallback API key for the selected provider |
 | `STYLECT_OUTPUT_LANG` | Output language (`en` or `ja`, default: `en`) |
+| `REPO_SEARCH_PATHS` | Colon-separated local repo search roots for auto/local source resolution |
 
-`--author` is required for fetch runs. GitHub token is required for `--source github`, or for `--source auto` when no local clone is found (optional otherwise for languages API).
+`--author` is required for fetch runs. GitHub token is required for `--source github`, or for `--source auto` when no local clone is found (optional otherwise for languages API). If `GITHUB_TOKEN` is not set, stylect also tries `gh auth token`.
+
+### Least-privilege auth
+
+Use the narrowest credential that works for your workflow:
+
+- **Local clone first** — With `--source auto` or `local`, a local git clone avoids GitHub API access for commit fetch. A token is only needed for the languages API fallback.
+- **`gh auth login` (recommended for local dev)** — Prefer the GitHub CLI over long-lived tokens. Stylect reads `gh auth token` when `GITHUB_TOKEN` is unset. Use a personal account with access only to the repositories you analyze.
+- **Fine-grained `GITHUB_TOKEN`** — If you set `GITHUB_TOKEN` explicitly, use a [fine-grained personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens) scoped to the target repository with **Contents: Read-only** (and **Metadata: Read-only**). Avoid classic tokens with broad `repo` scope unless required.
+- **LLM keys** — Grant only the provider you use (`CURSOR_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`). Do not commit `.env`; copy `.env.example` to `.env` locally.
+
+Never paste tokens into issues, PRs, or shared logs.
 
 ## Development
 

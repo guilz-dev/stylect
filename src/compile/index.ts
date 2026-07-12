@@ -247,6 +247,7 @@ export async function compileWiki(
       const data = await compileArticleJson(opts.llm, system, prompt, slug)
       articles.push(parseArticleData(data, slug, 'language', reposList, `${language} Style`))
     } catch (error) {
+      failedSlugs.push(slug)
       const message = error instanceof Error ? error.message : String(error)
       process.stderr.write(`compile: skipped ${language}: ${message}\n`)
       if (existing) {

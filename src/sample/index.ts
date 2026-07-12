@@ -57,19 +57,20 @@ export function buildClusters(commits: RawCommit[], samplesPerGroup: number): Sa
 export function sampleCommits(
   commits: RawCommit[],
   config: StylectConfig,
-  opts: { slug: string; newCommitCount: number },
+  opts: { slug: string; newCommitCount: number; preferCache?: boolean },
 ): SampleResult {
   const samplesPath = join(config.cacheDir, opts.slug, 'samples.json')
   const cacheExists = existsSync(samplesPath)
 
-  if (shouldUseSampleCache(config.fresh, cacheExists, opts.newCommitCount)) {
+  if (
+    opts.preferCache !== false &&
+    shouldUseSampleCache(config.fresh, cacheExists, opts.newCommitCount)
+  ) {
     return { clusters: loadSamples(samplesPath), fromCache: true }
   }
 
   const clusters = buildClusters(commits, config.samplesPerGroup)
-  if (clusters.length > 0) {
-    saveSamples(samplesPath, clusters)
-  }
+  saveSamples(samplesPath, clusters)
 
   return { clusters, fromCache: false }
 }

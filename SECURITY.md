@@ -2,13 +2,15 @@
 
 ## Supported Versions
 
-| Version | Supported |
-| ------- | --------- |
-| 0.1.x   | Yes       |
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.4.x   | Yes                |
+| < 1.4   | No                 |
 
 ## Reporting a Vulnerability
 
-Please open a private security advisory on GitHub or contact the maintainers
-through the repository issues if you cannot use advisories.
+**Do not open a public GitHub issue for unpatched security vulnerabilities.**
 
-Do not include live API tokens or private repository contents in public reports.
+Please report security issues through a [private security advisory](https://github.com/guilz-dev/stylect/security/advisories/new) on this repository. If you cannot use advisories, contact the maintainers privately.
+
+Do not include live API tokens, credentials, or private repository contents in any report.

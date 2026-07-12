@@ -153,6 +153,11 @@ describe('runPipeline', () => {
 
     expect(result.wroteArtifacts).toBe(true)
     expect(writeArtifacts).toHaveBeenCalled()
+    expect(sampleCommits).toHaveBeenCalledWith(fetchResult.allCommits, expect.anything(), {
+      slug: 'owner__repo',
+      newCommitCount: fetchResult.newCommits.length,
+      preferCache: false,
+    })
   })
 
   it('reports partial failure when extract skips clusters', async () => {
@@ -173,6 +178,25 @@ describe('runPipeline', () => {
 
     expect(result.llmPartialFailure).toBe(true)
     expect(result.lintFailed).toBe(false)
+  })
+
+  it('reports partial failure when compile skips language articles', async () => {
+    vi.mocked(compileWiki).mockResolvedValue({
+      articles: [article],
+      fromCache: false,
+      failedSlugs: ['typescript'],
+    })
+
+    const config = defaultConfig({
+      author: 'dev',
+      repos: ['owner/repo'],
+      llmApiKey: 'test-key',
+    })
+
+    const result = await runPipeline(config)
+
+    expect(result.llmPartialFailure).toBe(true)
+    expect(result.wroteArtifacts).toBe(true)
   })
 
   it('reports lint failure but still writes artifacts', async () => {

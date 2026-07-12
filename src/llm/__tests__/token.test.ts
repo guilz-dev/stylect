@@ -22,4 +22,23 @@ describe('resolveLlmApiKey', () => {
 
     expect(resolveLlmApiKey('cursor')).toBe('cursor-key')
   })
+
+  it('uses OPENAI_API_KEY for openai', () => {
+    process.env.OPENAI_API_KEY = 'openai-key'
+
+    expect(resolveLlmApiKey('openai')).toBe('openai-key')
+  })
+
+  it('uses ANTHROPIC_API_KEY for anthropic', () => {
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key'
+
+    expect(resolveLlmApiKey('anthropic')).toBe('anthropic-key')
+  })
+
+  it('uses STYLECT_LLM_API_KEY as a fallback for openai and anthropic', () => {
+    process.env.STYLECT_LLM_API_KEY = 'generic-key'
+
+    expect(resolveLlmApiKey('openai')).toBe('generic-key')
+    expect(resolveLlmApiKey('anthropic')).toBe('generic-key')
+  })
 })

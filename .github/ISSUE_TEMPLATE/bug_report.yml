@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem with stylect
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please do **not** include API keys, tokens, or private repository contents.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Command(s), flags, and minimal context needed to reproduce.
+      placeholder: |
+        stylect run -a you -r owner/repo --source local
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: stylect version
+      placeholder: 1.4.0
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: 22.x
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Fetch source mode
+      options:
+        - auto
+        - local
+        - github
+        - not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Redact secrets before posting.
+      render: shell

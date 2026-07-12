@@ -26,6 +26,7 @@ export async function runSamplePipeline(config: StylectConfig): Promise<void> {
     const sampleResult = sampleCommits(commits, config, {
       slug,
       newCommitCount: config.fresh ? commits.length : 0,
+      preferCache: false,
     })
 
     if (sampleResult.clusters.length === 0) {

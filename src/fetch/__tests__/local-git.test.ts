@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { defaultConfig } from '../../config.js'
-import { cleanupTempDirs, commitFile, createTempGitRepo } from '../../test-helpers/git-repo.js'
+import {
+  cleanupTempDirs,
+  commitFile,
+  createTempGitRepo,
+  runGit,
+} from '../../test-helpers/git-repo.js'
 import { fetchCommitsFromLocalGit } from '../local-git.js'
 
 afterEach(() => {
@@ -37,5 +42,29 @@ describe('fetchCommitsFromLocalGit', () => {
 
     expect(result.languageSource).toBe('extensions')
     expect(result.commits[0]?.languages).toContain('Ruby')
+  })
+
+  it('preserves renamed files using the new path and renamed status', async () => {
+    const repoPath = createTempGitRepo('stylect-local-git-rename-', 'dev-user')
+    commitFile(repoPath, 'dev-user', 'old.ts', 'export const before = true\n', 'before rename')
+
+    runGit(repoPath, ['mv', 'old.ts', 'new.ts'])
+    runGit(repoPath, ['commit', '-m', 'rename file'])
+
+    const config = defaultConfig({ author: 'dev-user' })
+    const result = await fetchCommitsFromLocalGit('owner/repo', repoPath, config, {
+      perRepoLimit: 20,
+    })
+
+    const renamedCommit = result.commits.find((commit) => commit.message === 'rename file')
+    expect(renamedCommit?.files).toEqual([
+      {
+        filename: 'new.ts',
+        status: 'renamed',
+        additions: 0,
+        deletions: 0,
+        patch: expect.stringContaining('rename to new.ts'),
+      },
+    ])
   })
 })
