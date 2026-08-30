@@ -13,7 +13,7 @@ importers:
     dependencies:
       '@cursor/sdk':
         specifier: ^1.0.23
-        version: 1.0.23
+        version: 1.0.30
     devDependencies:
       '@biomejs/biome':
         specifier: 2.4.15
@@ -108,38 +108,38 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^1.10.0
 
-  '@cursor/sdk-darwin-arm64@1.0.23':
-    resolution: {integrity: sha512-HpltGkIDFG+XgsETJho0OiOvGLyMKqZKhh4uXtD3ZKZcgTtLvKgbbU8jVgEMa3qodtfwPz5lpwAjs5jM1zOt6w==}
+  '@cursor/sdk-darwin-arm64@1.0.30':
+    resolution: {integrity: sha512-O0w2fLd6jxrvAUOJGsKBs8VSi5OojqqEOMFBzHTHS82wU/DX3ZlizK3czzCXxDKs3l8j/BVQwVCxP9jMFcf41Q==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@cursor/sdk-darwin-x64@1.0.23':
-    resolution: {integrity: sha512-sjRQVhU7UL3kYSR9DzY+BAwa/iFdnPvTI3E62mIhj/2ey3LEnhIhotZQ9ymNJ0wA5BfhC7Be+JYcSMDyHxxr1g==}
+  '@cursor/sdk-darwin-x64@1.0.30':
+    resolution: {integrity: sha512-TdjreV7V6gtSKbUaXDarfE1735PES6uzLgLxp42E5kT6EXpjQhKsifdsYOMdsO/RBw166kya/XxG24L/FUfEHA==}
     cpu: [x64]
     os: [darwin]
     hasBin: true
 
-  '@cursor/sdk-linux-arm64@1.0.23':
-    resolution: {integrity: sha512-RizTwZ2Hhhaq8bnF3yGUZWBUvLA+/lExlTAg/5Levc9f7hNoDZViIP3XaVWY/8yzPAxypeds8tWacVIaAA2/Ig==}
+  '@cursor/sdk-linux-arm64@1.0.30':
+    resolution: {integrity: sha512-1+bsmri6vJ2YuqL/SQ6QSx/ymu2eBzjGgT1bTgN47tCzxDgNOKacXtghpx4zdHM5AmOtT+aLXVVxXjStXmNtcA==}
     cpu: [arm64]
     os: [linux]
     hasBin: true
 
-  '@cursor/sdk-linux-x64@1.0.23':
-    resolution: {integrity: sha512-s93WBbi4hrE/uisTrEfNNH1m18bwfO6wmmsnIYQ3W3gbGBriFM1ZeroHxj1F6paMDE7o/dfUeW22lQ72rRZrSA==}
+  '@cursor/sdk-linux-x64@1.0.30':
+    resolution: {integrity: sha512-5TRAM1xNwVr0Lox2ay5U5h+VY1OeqJLgnS28da7mx+ZkmeAU+hzuUFq2/lcIqoJrp2qBRdUH5WzI44JNtjBKmg==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@cursor/sdk-win32-x64@1.0.23':
-    resolution: {integrity: sha512-d1p1+tRJbNZTUqw8SPEW9OYtU02ynZysASDDvhpaEFtbPwGFUrez9sVbFHpbuXeOXL//H+faiHJanVFsUNfIZw==}
+  '@cursor/sdk-win32-x64@1.0.30':
+    resolution: {integrity: sha512-kVjpWmLTFLL131TQm3ytz1HbAeyjBRAHMtr6vyLtbBMuLBb0la5igvt58Xi8mXwekymWXim1+rZj7ZYUO3K1rw==}
     cpu: [x64]
     os: [win32]
     hasBin: true
 
-  '@cursor/sdk@1.0.23':
-    resolution: {integrity: sha512-VIh8oW89XXACUkQqB2N8TaU3A/y2jQieF++VC6QqIqKhKRKj7kd+pzeh43MXusuPpebtxtEzqvjaCLlc1xbYTQ==}
+  '@cursor/sdk@1.0.30':
+    resolution: {integrity: sha512-s3gIXfTD3w8ys+KFE81JjjoiJcynkHsf/JCDyXrnbliIac3dkT59hwYZII3XhsT1DlXIfqg+YzSMru6w1CkZow==}
     engines: {node: '>=22.13'}
 
   '@esbuild/aix-ppc64@0.28.1':
@@ -633,8 +633,8 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici@8.7.0:
-    resolution: {integrity: sha512-N7iQtfyLhIMOFgQubvmLV26svHpO0bqKnAiWotTQCVKCmWrcGbBotPuW1x+xwYZ2VHdSTVUfPQQnlEt1/LouTQ==}
+  undici@8.10.0:
+    resolution: {integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==}
     engines: {node: '>=22.19.0'}
 
   vite-node@3.2.4:
@@ -761,7 +761,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 1.10.0
       '@connectrpc/connect': 1.7.0(@bufbuild/protobuf@1.10.0)
-      undici: 8.7.0
+      undici: 8.10.0
 
   '@connectrpc/connect-web@1.7.0(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.7.0(@bufbuild/protobuf@1.10.0))':
     dependencies:
@@ -772,22 +772,22 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 1.10.0
 
-  '@cursor/sdk-darwin-arm64@1.0.23':
+  '@cursor/sdk-darwin-arm64@1.0.30':
     optional: true
 
-  '@cursor/sdk-darwin-x64@1.0.23':
+  '@cursor/sdk-darwin-x64@1.0.30':
     optional: true
 
-  '@cursor/sdk-linux-arm64@1.0.23':
+  '@cursor/sdk-linux-arm64@1.0.30':
     optional: true
 
-  '@cursor/sdk-linux-x64@1.0.23':
+  '@cursor/sdk-linux-x64@1.0.30':
     optional: true
 
-  '@cursor/sdk-win32-x64@1.0.23':
+  '@cursor/sdk-win32-x64@1.0.30':
     optional: true
 
-  '@cursor/sdk@1.0.23':
+  '@cursor/sdk@1.0.30':
     dependencies:
       '@bufbuild/protobuf': 1.10.0
       '@connectrpc/connect': 1.7.0(@bufbuild/protobuf@1.10.0)
@@ -796,11 +796,11 @@ snapshots:
       '@statsig/js-client': 3.31.0
       zod: 3.25.76
     optionalDependencies:
-      '@cursor/sdk-darwin-arm64': 1.0.23
-      '@cursor/sdk-darwin-x64': 1.0.23
-      '@cursor/sdk-linux-arm64': 1.0.23
-      '@cursor/sdk-linux-x64': 1.0.23
-      '@cursor/sdk-win32-x64': 1.0.23
+      '@cursor/sdk-darwin-arm64': 1.0.30
+      '@cursor/sdk-darwin-x64': 1.0.30
+      '@cursor/sdk-linux-arm64': 1.0.30
+      '@cursor/sdk-linux-x64': 1.0.30
+      '@cursor/sdk-win32-x64': 1.0.30
 
   '@esbuild/aix-ppc64@0.28.1':
     optional: true
@@ -1174,7 +1174,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici@8.7.0: {}
+  undici@8.10.0: {}
 
   vite-node@3.2.4(@types/node@22.15.29):
     dependencies:
