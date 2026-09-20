@@ -50,7 +50,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
+    "@biomejs/biome": "2.5.14",
     "@types/node": "22.15.29",
     "typescript": "5.9.3",
     "vitest": "3.2.4"
